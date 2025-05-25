@@ -1,6 +1,6 @@
-#include "../include/TaskManager.h"
-#include "../include/UltrasonicSensors.h"
-#include "../include/BuzzerManager.h"
+#include "TaskManager.h"
+#include "../sensors/UltrasonicSensors.h"
+#include "../feedback/BuzzerManager.h"
 
 // Declarăm coada pentru mesaje
 QueueHandle_t queue;

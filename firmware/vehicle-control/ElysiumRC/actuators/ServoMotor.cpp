@@ -1,4 +1,4 @@
-#include "../include/ServoMotor.h"
+#include "ServoMotor.h"
 
 // Definirea constantelor
 

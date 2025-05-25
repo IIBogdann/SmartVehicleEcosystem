@@ -1,4 +1,4 @@
-#include "../include/DCMotor.h"
+#include "DCMotor.h"
 
 // Definirea constantelor
 const int PIN_MOTOR_IN1 = 5;  // Control direcție

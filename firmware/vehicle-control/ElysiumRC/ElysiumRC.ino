@@ -4,13 +4,17 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-// Include fișiere header din directorul include
-#include "../include/BluetoothManager.h"
-#include "../include/DCMotor.h"
-#include "../include/ServoMotor.h"
-#include "../include/UltrasonicSensors.h"
-#include "../include/TaskManager.h"
-#include "../include/BuzzerManager.h"
+// Include module componente
+// Core
+#include "core/BluetoothManager.h"
+#include "core/TaskManager.h"
+// Actuators
+#include "actuators/DCMotor.h"
+#include "actuators/ServoMotor.h"
+// Sensors
+#include "sensors/UltrasonicSensors.h"
+// Feedback
+#include "feedback/BuzzerManager.h"
 
 
 // ******************* GLOBAL **************************************

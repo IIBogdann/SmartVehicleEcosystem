@@ -1,4 +1,4 @@
-#include "../include/BuzzerManager.h"
+#include "BuzzerManager.h"
 
 void Buzzer_init() {
   Serial.println("\nConfigurare buzzer...");
