@@ -54,9 +54,10 @@ SmartVehicleEcosystem/
 3. Compilează și încarcă codul pe dispozitiv
 
 ## Licență
-Proiect dezvoltat în scop educațional de IIBogdann și Mihaila.
+Proiect dezvoltat sub [licența Apache 2.0](LICENSE).
+Copyright 2025 Mihăilă Bogdan-Iulian și Bulgariu (Mihăilă) Elena-Iuliana
 
 ## Contribuții
 Proiect realizat de:
-- IIBogdann: Sistemul de control al vehiculului
-- Mihaila: Sistemul de semaforizare inteligentă
+- **Mihăilă Bogdan-Iulian**: Dezvoltarea sistemului Elysium RC (vehiculul autonom)
+- **Bulgariu (Mihăilă) Elena-Iuliana**: Dezvoltarea sistemului de semaforizare adaptivă
