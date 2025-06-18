@@ -1,3 +1,4 @@
+
 #include <ESP32Servo.h>
 #include <Arduino.h>
 #include "freertos/FreeRTOS.h"
@@ -6,15 +7,16 @@
 
 // Include module componente
 // Core
-#include "core/BluetoothManager.h"
-#include "core/TaskManager.h"
+#include "../core/BluetoothManager.h"
+#include "../core/TaskManager.h"
 // Actuators
-#include "actuators/DCMotor.h"
-#include "actuators/ServoMotor.h"
+#include "../motion-control/DCMotor.h"
+#include "../motion-control/ServoMotor.h"
 // Sensors
-#include "sensors/UltrasonicSensors.h"
+#include "../sensors/UltrasonicSensors.h"
+#include "../sensors/RFIDManager.h"
 // Feedback
-#include "feedback/BuzzerManager.h"
+#include "../feedback/BuzzerManager.h"
 
 
 // ******************* GLOBAL **************************************
@@ -51,6 +53,7 @@ void setup() {
   ServoMotor_init();
   UltrasonicSensors_init();
   Buzzer_init();
+  RFIDManager_init();
 
 
   //################################# TEST AND DIAGNOSE #######################################
@@ -78,8 +81,10 @@ void setup() {
 
   Tasks_init();
   
-
-
+  //---------------------- RFID -------------------------------------------------
+  Serial.println("\nRFID Reader test..."); delay(1000);
+  Serial.println("1. Așteptare card RFID...");
+  
 
   Serial.println("\n\n*** Elysium RC is READY! *** \n\n");
   delay(1000);
@@ -133,9 +138,17 @@ void loop() {
   }
 
   Serial.println(mesaj);
-
-
-
+  
+  // Actualizare stare modul RFID
+  RFIDManager_update();
+  
+  // Verificare dacă a fost detectat un card nou
+  if (isCardPresent() && lastCardID.length() > 0) {
+    Serial.print("Card RFID detectat: ");
+    Serial.println(lastCardID);
+    // Trimite ID-ul cardului prin Bluetooth
+    btManager.sendData("RFID:" + lastCardID);
+  }
   
   delay(10);
 }
