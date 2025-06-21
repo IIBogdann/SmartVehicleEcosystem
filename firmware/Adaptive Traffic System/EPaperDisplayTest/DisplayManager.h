@@ -15,8 +15,10 @@ class DisplayManager {
     
     // Funcții principale
     void clear();
+    void clearScreen();
     void update();
     void hibernate();
+    void fullRefresh(); // Funcție nouă pentru eliminarea ghostingului
     
     // Funcții de afișare complexe
     void welcomeMessage(); // Afișează mesajul de bun venit și inițiază secvența de tranziție
@@ -31,6 +33,7 @@ class DisplayManager {
     // Funcții utilitare
     void drawCenteredText(const char* text, int16_t y, uint8_t textSize);
     void clipire(int n); // Mutată din codul principal
+    void drawCheckerboardPattern(); // Pattern special pentru eliminarea liniilor orizontale
     
   private:
     // Pinii pentru conexiunea cu e-paper
