@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Close
 import com.example.smarttrafficsigns.ble.BleConnection
 
 /**
@@ -21,13 +23,14 @@ import com.example.smarttrafficsigns.ble.BleConnection
 @Composable
 fun SignControlScreen(
     deviceName: String,
-    connectionState: BleConnection.ConnectionState,
+    connectionState: BleConnection.ConnectionState?,
     statusMessage: String,
     onSendCommand: (String) -> Boolean,
-    onDisconnect: () -> Unit
+    onDisconnect: () -> Unit,
+    onBack: () -> Unit
 ) {
     val possibleCommands = remember {
-        listOf("STOP", "YIELD", "SPEED_LIMIT_30", "SPEED_LIMIT_50", "NO_ENTRY", "ACCIDENT", "ACCIDENT_AHEAD")
+        listOf("STOP", "YIELD", "SPEED_LIMIT_30", "SPEED_LIMIT_50")
     }
     
     var selectedCommand by remember { mutableStateOf(possibleCommands.first()) }
@@ -41,6 +44,7 @@ fun SignControlScreen(
         BleConnection.ConnectionState.DISCONNECTED -> "Deconectat"
         BleConnection.ConnectionState.DISCONNECTING -> "Se deconectează…"
         BleConnection.ConnectionState.ERROR -> "Eroare"
+        null -> "Necunoscut"
     }
 
     // Etichete și descrieri în limba română pentru comenzi
@@ -48,20 +52,14 @@ fun SignControlScreen(
         "STOP" to "STOP",
         "YIELD" to "Cedează trecerea",
         "SPEED_LIMIT_30" to "Limită 30 km/h",
-        "SPEED_LIMIT_50" to "Limită 50 km/h",
-        "NO_ENTRY" to "Acces interzis",
-        "ACCIDENT" to "Accident",
-        "ACCIDENT_AHEAD" to "Accident în față"
+        "SPEED_LIMIT_50" to "Limită 50 km/h"
     )
 
     val commandDescriptions = mapOf(
         "STOP" to "Semn de oprire obligatorie",
         "YIELD" to "Cedează trecerea",
         "SPEED_LIMIT_30" to "Limită de viteză 30 km/h",
-        "SPEED_LIMIT_50" to "Limită de viteză 50 km/h",
-        "NO_ENTRY" to "Accesul interzis",
-        "ACCIDENT" to "Accident",
-        "ACCIDENT_AHEAD" to "Accident în față"
+        "SPEED_LIMIT_50" to "Limită de viteză 50 km/h"
     )
     
     Scaffold(
@@ -69,8 +67,13 @@ fun SignControlScreen(
             TopAppBar(
                 title = { Text("Controlul semnului: $deviceName") },
                 navigationIcon = {
-                    IconButton(onClick = onDisconnect) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Înapoi la lista de dispozitive")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onDisconnect) {
+                        Icon(Icons.Default.Close, contentDescription = "Deconectează")
                     }
                 }
             )
@@ -175,6 +178,25 @@ fun SignControlScreen(
                     .height(56.dp)
             ) {
                 Text(text = "Trimite comandă")
+            }
+            
+            // Reset button appears if ACCIDENT detected
+            val showReset = remember(statusMessage) {
+                val low = statusMessage.lowercase()
+                low.contains("accid") || low.contains("accident")
+            }
+            if (showReset) {
+                Button(
+                    onClick = { onSendCommand("RESET_ACCIDENT") },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Resetare")
+                    Spacer(Modifier.width(8.dp))
+                    Text("RESETARE SEMN")
+                }
             }
             
             // Status pentru fiecare semn posibil

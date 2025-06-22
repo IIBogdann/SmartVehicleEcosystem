@@ -29,7 +29,8 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 class MainActivity : ComponentActivity() {
 
     private lateinit var bleScanner: BleScanner
-    private lateinit var bleConnection: BleConnection
+    // Gestionăm mai multe conexiuni simultane (una per dispozitiv)
+    private val connections = mutableStateMapOf<String, BleConnection>()
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
@@ -40,7 +41,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         bleScanner = BleScanner(this)
-        bleConnection = BleConnection(this)
 
         setContent {
             SmartTrafficSignsTheme {
@@ -82,36 +82,39 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun BleContent() {
+        // Dispozitivul pentru care afișăm ecranul de control
+        var activeDevice by remember { mutableStateOf<BluetoothDevice?>(null) }
+
         // Starea conexiunii BLE
-        val connectionState by bleConnection.connectionState.collectAsState()
-        val statusMessage by bleConnection.statusMessage.collectAsState()
+        val activeConn = activeDevice?.let { connections[it.address] }
+        val connectionState by activeConn?.connectionState?.collectAsState() ?: remember { mutableStateOf(BleConnection.ConnectionState.DISCONNECTED) }
+        val statusMessage by activeConn?.statusMessage?.collectAsState() ?: remember { mutableStateOf("") }
 
         // Trimite notificare dacă mesajul conține "Accident"
         LaunchedEffect(statusMessage) {
             statusMessage?.let { msg ->
                 val lower = msg.lowercase()
-                if (lower.contains("accident")) {
+                if (lower.contains("accident") || lower.contains("accid")) {
                     NotificationUtils.showAccidentNotification(this@MainActivity, msg)
                 }
             }
         }
 
-        // Ținem minte dispozitivul conectat
-        var connectedDevice by remember { mutableStateOf<BluetoothDevice?>(null) }
-
         // Colectăm lista de dispozitive
         val devicesList by bleScanner.devices.collectAsState()
 
-        if (connectedDevice == null) {
+        if (activeDevice == null) {
             // Dacă nu suntem conectați la niciun dispozitiv, afișăm lista de dispozitive
             DeviceListScreen(
                 devices = devicesList,
+                connectedMacs = connections.keys,
                 onRefresh = { bleScanner.startScan() },
                 onDeviceSelected = { device ->
-                    // Oprim scanarea și ne conectăm la dispozitiv
                     bleScanner.stopScan()
-                    bleConnection.connect(device)
-                    connectedDevice = device
+                    // Dacă nu avem deja o conexiune pentru acest dispozitiv o creăm
+                    val mac = device.address
+                    val connection = connections.getOrPut(mac) { BleConnection(this@MainActivity).apply { connect(device) } }
+                    activeDevice = device
                     Toast.makeText(
                         this@MainActivity,
                         "Conectare la ${device.name ?: device.address}...",
@@ -122,14 +125,24 @@ class MainActivity : ComponentActivity() {
         } else {
             // Dacă suntem conectați, afișăm ecranul de control
             SignControlScreen(
-                deviceName = connectedDevice?.name ?: connectedDevice?.address ?: "Dispozitiv",
+                deviceName = activeDevice?.name ?: activeDevice?.address ?: "Dispozitiv",
                 connectionState = connectionState,
                 statusMessage = statusMessage ?: "",
-                onSendCommand = { command -> bleConnection.sendCommand(command) },
+                onSendCommand = { command ->
+                    activeDevice?.let { dev -> connections[dev.address]?.sendCommand(command) } ?: false
+                },
                 onDisconnect = {
-                    bleConnection.disconnect()
-                    connectedDevice = null
-                    bleScanner.startScan()  // Reîncepem scanarea
+                    activeDevice?.let { dev ->
+                        connections[dev.address]?.disconnect()
+                        connections.remove(dev.address)
+                    }
+                    activeDevice = null
+                    bleScanner.startScan()
+                },
+                onBack = {
+                    // Nu deconectăm, doar revenim la listă
+                    activeDevice = null
+                    bleScanner.startScan()
                 }
             )
         }
@@ -150,6 +163,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         bleScanner.stopScan()
-        bleConnection.close()
+        connections.values.forEach { it.close() }
     }
 }

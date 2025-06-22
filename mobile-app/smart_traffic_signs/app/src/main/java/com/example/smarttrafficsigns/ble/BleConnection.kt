@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothGattDescriptor
 import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,6 +46,7 @@ class BleConnection(private val context: Context) {
     // Referințe interne pentru conexiune
     private var bluetoothGatt: BluetoothGatt? = null
     private var commandCharacteristic: BluetoothGattCharacteristic? = null
+    private var statusCharacteristic: BluetoothGattCharacteristic? = null
 
     // Callback pentru evenimentele GATT
     private val gattCallback = object : BluetoothGattCallback() {
@@ -62,6 +64,7 @@ class BleConnection(private val context: Context) {
                     bluetoothGatt?.close()
                     bluetoothGatt = null
                     commandCharacteristic = null
+                    statusCharacteristic = null
                 }
                 BluetoothProfile.STATE_CONNECTING -> {
                     Log.i(TAG, "Conectare la dispozitivul GATT...")
@@ -82,10 +85,21 @@ class BleConnection(private val context: Context) {
                 val service = gatt.getService(SERVICE_UUID)
                 if (service != null) {
                     commandCharacteristic = service.getCharacteristic(COMMAND_CHARACTERISTIC_UUID)
+                    statusCharacteristic = service.getCharacteristic(STATUS_CHARACTERISTIC_UUID)
                     
                     if (commandCharacteristic != null) {
                         Log.i(TAG, "Caracteristica pentru comenzi găsită")
                         _statusMessage.value = "Dispozitiv gata pentru comenzi"
+                        // Activăm notificările pentru caracteristica de status
+                        statusCharacteristic?.let { statusChar ->
+                            gatt.setCharacteristicNotification(statusChar, true)
+                            val cccd = statusChar.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
+                            cccd?.let {
+                                it.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                gatt.writeDescriptor(it)
+                            }
+                            Log.i(TAG, "Notificările pentru status au fost activate")
+                        }
                     } else {
                         Log.e(TAG, "Caracteristica pentru comenzi nu a fost găsită")
                         _statusMessage.value = "Eroare: Caracteristica pentru comenzi nu există"
@@ -122,7 +136,7 @@ class BleConnection(private val context: Context) {
             val value = characteristic.value
             val message = value.toString(Charsets.UTF_8)
             Log.i(TAG, "Date primite de la dispozitiv: $message")
-            _statusMessage.value = "Mesaj primit: $message"
+            _statusMessage.value = message
         }
     }
 
@@ -189,6 +203,7 @@ class BleConnection(private val context: Context) {
         bluetoothGatt?.close()
         bluetoothGatt = null
         commandCharacteristic = null
+                    statusCharacteristic = null
         _connectionState.value = ConnectionState.DISCONNECTED
     }
 }
