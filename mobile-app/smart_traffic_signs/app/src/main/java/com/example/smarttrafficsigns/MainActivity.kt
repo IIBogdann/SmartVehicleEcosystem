@@ -19,6 +19,9 @@ import com.example.smarttrafficsigns.NotificationUtils
 import com.example.smarttrafficsigns.ble.BleConnection
 import com.example.smarttrafficsigns.ble.BleScanner
 import com.example.smarttrafficsigns.ble.ClassicScanner
+import com.example.smarttrafficsigns.ble.DeviceConnection
+import com.example.smarttrafficsigns.ble.SppConnection
+import com.example.smarttrafficsigns.ui.ElysiumConnectScreen
 import com.example.smarttrafficsigns.ui.DeviceListScreen
 import com.example.smarttrafficsigns.ui.RequestPermissions
 import com.example.smarttrafficsigns.ui.SignControlScreen
@@ -32,7 +35,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var bleScanner: BleScanner
     private lateinit var classicScanner: ClassicScanner
     // Gestionăm mai multe conexiuni simultane (una per dispozitiv)
-    private val connections = mutableStateMapOf<String, BleConnection>()
+    private val connections = mutableStateMapOf<String, DeviceConnection>()
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
@@ -88,9 +91,14 @@ class MainActivity : ComponentActivity() {
         // Dispozitivul pentru care afișăm ecranul de control
         var activeDevice by remember { mutableStateOf<BluetoothDevice?>(null) }
 
-        // Starea conexiunii BLE
+        // Conexiunea activă (BLE sau SPP)
         val activeConn = activeDevice?.let { connections[it.address] }
-        val connectionState by activeConn?.connectionState?.collectAsState() ?: remember { mutableStateOf(BleConnection.ConnectionState.DISCONNECTED) }
+        val bleConn = activeConn as? BleConnection
+        val sppConn = activeConn as? SppConnection
+
+        val bleState by bleConn?.connectionState?.collectAsState() ?: remember { mutableStateOf(BleConnection.ConnectionState.DISCONNECTED) }
+        val sppState by sppConn?.connectionState?.collectAsState() ?: remember { mutableStateOf(SppConnection.State.DISCONNECTED) }
+
         val statusMessage by activeConn?.statusMessage?.collectAsState() ?: remember { mutableStateOf("") }
 
         // Trimite notificare dacă mesajul conține "Accident"
@@ -128,7 +136,13 @@ class MainActivity : ComponentActivity() {
                     classicScanner.stopScan()
                     // Dacă nu avem deja o conexiune pentru acest dispozitiv o creăm
                     val mac = device.address
-                    val connection = connections.getOrPut(mac) { BleConnection(this@MainActivity).apply { connect(device) } }
+                    val connection = connections.getOrPut(mac) {
+                        if (device.type == BluetoothDevice.DEVICE_TYPE_CLASSIC || device.type == BluetoothDevice.DEVICE_TYPE_DUAL) {
+                            SppConnection().apply { connect(device) }
+                        } else {
+                            BleConnection(this@MainActivity).apply { connect(device) }
+                        }
+                    }
                     activeDevice = device
                     Toast.makeText(
                         this@MainActivity,
@@ -139,9 +153,30 @@ class MainActivity : ComponentActivity() {
             )
         } else {
             // Dacă suntem conectați, afișăm ecranul de control
+            if (sppConn != null) {
+                ElysiumConnectScreen(
+                    deviceName = activeDevice?.name ?: activeDevice?.address ?: "Elysium RC",
+                    connectionState = sppState,
+                    statusMessage = statusMessage,
+                    onDisconnect = {
+                        activeDevice?.let { dev ->
+                            connections[dev.address]?.disconnect()
+                            connections.remove(dev.address)
+                        }
+                        activeDevice = null
+                        bleScanner.startScan()
+                        classicScanner.startScan()
+                    },
+                    onBack = {
+                        activeDevice = null
+                        bleScanner.startScan()
+                        classicScanner.startScan()
+                    }
+                )
+            } else
             SignControlScreen(
                 deviceName = activeDevice?.name ?: activeDevice?.address ?: "Dispozitiv",
-                connectionState = connectionState,
+                connectionState = bleState,
                 statusMessage = statusMessage ?: "",
                 onSendCommand = { command ->
                     activeDevice?.let { dev -> connections[dev.address]?.sendCommand(command) } ?: false
