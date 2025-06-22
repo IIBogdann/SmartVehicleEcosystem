@@ -33,7 +33,7 @@ class DisplayManager {
     // Funcții utilitare
     void drawCenteredText(const char* text, int16_t y, uint8_t textSize);
     void clipire(int n); // Mutată din codul principal
-    void drawCheckerboardPattern(); // Pattern special pentru eliminarea liniilor orizontale
+   
     
   private:
     // Pinii pentru conexiunea cu e-paper

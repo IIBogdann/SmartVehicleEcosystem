@@ -1,0 +1,278 @@
+/**
+ * Adaptive Traffic System - E-Paper Display
+ * 
+ * Componentă a proiectului SmartVehicleEcosystem
+ * Autor: Bulgariu (Mihăilă) Elena-Iuliana & Mihăilă Bogdan-Iulian
+ * 
+ * Hardware: MH ET Live 2.13 inch e-paper display cu XIAO ESP32C3
+ * 
+ * Actualizări:
+ * - Adăugare server BLE pentru comunicare cu aplicația Android
+ * - Implementare ESP-Now pentru sincronizare între semne de trafic
+ */
+
+// Include modulele necesare
+#include "DisplayManager.h"
+#include "BleManager.h"
+#include <esp_now.h>
+#include <WiFi.h>
+#include <esp_wifi.h>
+
+// Variabile pentru controlul secvenței de afișare
+bool welcomeShown = false;
+unsigned long welcomeStartTime = 0;
+const unsigned long WELCOME_DURATION = 5000; // 5 secunde
+
+// Manager BLE pentru comunicare cu aplicația Android
+BleManager bleManager(&epaperDisplay);
+
+// Adresa MAC a lui Elysium RC sau a altui semn de trafic - trebuie actualizată cu adresa reală
+uint8_t receiverMacAddress[] = {0x24, 0x6F, 0x28, 0x00, 0x00, 0x00};
+
+// Structura datelor care vor fi transmise prin ESP-Now
+typedef struct traffic_message {
+  char signType[20];
+  int priority;
+} traffic_message;
+
+// Callback pentru transmisia datelor ESP-Now
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("ESP-Now transmisie: ");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Succes" : "Eșec");
+}
+
+// Callback pentru primirea datelor ESP-Now
+void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len) {
+  char macStr[18];
+  snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+           mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  
+  Serial.print("ESP-Now date primite de la: ");
+  Serial.println(macStr);
+  
+  if (data_len == sizeof(traffic_message)) {
+    traffic_message *message = (traffic_message*) data;
+    Serial.print("Semn primit: ");
+    Serial.println(message->signType);
+    
+    // Afișăm semnul de trafic primit
+    epaperDisplay.showTrafficSign(message->signType);
+    
+    // Anunțăm aplicația despre schimbare prin BLE
+    bleManager.sendStatusUpdate(String("Sign updated via ESP-Now: ") + message->signType);
+  }
+}
+
+void setup() {
+  // Inițializare serial pentru debugging
+  Serial.begin(115200);
+  Serial.println("Adaptive Traffic System - Pornire");
+  
+  // 1. Eliberare memorie Bluetooth Classic (doar BLE necesar)
+  Serial.println("1. Eliberare memorie Bluetooth Classic");
+  esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
+  
+  // 2. Inițializare BLE Manager
+  Serial.println("2. Inițializare BLE Manager");
+  bleManager.init();
+  Serial.println("   BLE inițializat cu succes");
+  
+  // 3. Pornire WiFi în modul STA
+  Serial.println("3. Pornire WiFi în modul STA");
+  WiFi.mode(WIFI_STA);
+  
+  // 4. Configurare corectă power-save pentru coexistența WiFi și BLE
+  Serial.println("4. Configurare power-save WiFi pentru coexistență cu BLE");
+  // Lăsăm setarea implicită (WIFI_PS_MIN_MODEM) pentru coexistență stabilă
+  // esp_wifi_set_ps(WIFI_PS_MIN_MODEM); // Opțional, este implicit oricum
+  
+  // 5. Fixare canal WiFi (1, 6 sau 11 sunt recomandate)
+  Serial.println("5. Fixare canal WiFi");
+  esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
+  
+  // 6. Inițializare ESP-Now
+  Serial.println("6. Inițializare ESP-Now");
+  if (esp_now_init() == ESP_OK) {
+    Serial.println("   ESP-Now inițializat cu succes");
+    
+    // Înregistrare callback-uri
+    esp_now_register_send_cb(OnDataSent);
+    esp_now_register_recv_cb(OnDataRecv);
+    
+    // Adăugare peer
+    esp_now_peer_info_t peerInfo = {};
+    memcpy(peerInfo.peer_addr, receiverMacAddress, 6);
+    peerInfo.channel = 1; // Același canal ca în configurarea de mai sus
+    peerInfo.encrypt = false;
+    
+    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+      Serial.println("   Eroare la adăugarea peer-ului");
+    } else {
+      Serial.println("   Peer adăugat cu succes");
+    }
+  } else {
+    Serial.println("   EROARE la inițializarea ESP-Now!");
+  }
+  
+  // 7. Inițializare display și alte componente
+  Serial.println("7. Inițializare display");
+  epaperDisplay.init();
+  Serial.println("   Display inițializat");
+  
+  // Afișarea mesajului de bun venit
+  Serial.println("8. Afișare mesaj de bun venit");
+  epaperDisplay.welcomeMessage();
+  
+  // Inițializarea cronometrului pentru tranziție
+  welcomeStartTime = millis();
+  welcomeShown = true;
+  
+  Serial.println("Inițializare completă. Sistem pregătit pentru comenzi BLE și mesaje ESP-Now.");
+}
+
+
+
+void loop() {
+  // Dacă s-a afișat ecranul de bun venit și au trecut cele 5 secunde
+  if (welcomeShown && (millis() - welcomeStartTime > WELCOME_DURATION)) {
+    // Afișăm semnul STOP și punem display-ul în hibernare (inclus în metodă)
+    epaperDisplay.showTrafficSign("STOP");
+    
+    // Resetăm flag-ul pentru a nu mai intra în această condiție
+    welcomeShown = false;
+    
+    // Trimitem un status update prin BLE
+    bleManager.sendStatusUpdate("Ready to receive commands");
+    
+    // Exemplu de trimitere mesaj ESP-Now (comentat pentru a nu trimite automat)
+    /*
+    traffic_message message;
+    strcpy(message.signType, "STOP");
+    message.priority = 1;
+    
+    esp_err_t result = esp_now_send(receiverMacAddress, (uint8_t *)&message, sizeof(message));
+    if (result == ESP_OK) {
+      Serial.println("ESP-Now: Mesaj trimis cu succes");
+    } else {
+      Serial.print("ESP-Now: Eroare la trimitere, cod: ");
+      Serial.println(result);
+    }
+    */
+  }
+  
+  // BLE și ESP-Now vor rula evenimentele în fundal
+  // Loop mai rar pentru a economisi energie
+  delay(100);
+}
+
+
+
+
+/**
+ * BleManager.cpp
+ * 
+ * Implementarea clasei BleManager pentru Adaptive Traffic System
+ * 
+ * Autor: Bulgariu (Mihăilă) Elena-Iuliana & Mihăilă Bogdan-Iulian
+ */
+
+#include "BleManager.h"
+#include "DisplayManager.h"
+
+BleManager::BleManager(DisplayManager* displayManager) : 
+    _displayManager(displayManager),
+    _deviceConnected(false),
+    _oldDeviceConnected(false),
+    _pServer(nullptr),
+    _pService(nullptr),
+    _pSignCharacteristic(nullptr),
+    _pStatusCharacteristic(nullptr) {
+}
+
+void BleManager::init() {
+    // Inițializare BLE
+    BLEDevice::init("Traffic Sign");
+    
+    // Creare server BLE
+    _pServer = BLEDevice::createServer();
+    _pServer->setCallbacks(this);
+    
+    // Creare serviciu BLE
+    _pService = _pServer->createService(TRAFFIC_SIGN_SERVICE_UUID);
+    
+    // Creare caracteristici BLE
+    _pSignCharacteristic = _pService->createCharacteristic(
+        SIGN_CHARACTERISTIC_UUID,
+        BLECharacteristic::PROPERTY_WRITE
+    );
+    _pSignCharacteristic->setCallbacks(this);
+    
+    _pStatusCharacteristic = _pService->createCharacteristic(
+        STATUS_CHARACTERISTIC_UUID,
+        BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+    );
+    _pStatusCharacteristic->addDescriptor(new BLE2902());
+    
+    // Start serviciu
+    _pService->start();
+    
+    // Start advertising
+    BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->addServiceUUID(TRAFFIC_SIGN_SERVICE_UUID);
+    pAdvertising->setScanResponse(true);
+    pAdvertising->setMinPreferred(0x06);  // Funcții pentru compatibilitate iOS
+    pAdvertising->setMinPreferred(0x12);
+    BLEDevice::startAdvertising();
+    
+    Serial.println("BLE server inițializat. Așteptăm conexiuni...");
+    _pStatusCharacteristic->setValue("Ready");
+}
+
+void BleManager::sendStatusUpdate(const String& status) {
+    if (_deviceConnected) {
+        _pStatusCharacteristic->setValue(status.c_str());
+        _pStatusCharacteristic->notify();
+        Serial.print("Status notificat: ");
+        Serial.println(status);
+    }
+}
+
+void BleManager::onConnect(BLEServer* pServer) {
+    _deviceConnected = true;
+    Serial.println("Dispozitiv conectat!");
+    sendStatusUpdate("Connected");
+}
+
+void BleManager::onDisconnect(BLEServer* pServer) {
+    _deviceConnected = false;
+    Serial.println("Dispozitiv deconectat!");
+    
+    // Repornește advertising când te deconectezi, pentru a permite noi conexiuni
+    delay(500); // Delay mic pentru stabilizare
+    pServer->startAdvertising();
+    Serial.println("Restarting advertising");
+}
+
+void BleManager::onWrite(BLECharacteristic* characteristic) {
+    if (characteristic->getUUID().toString() == SIGN_CHARACTERISTIC_UUID) {
+        // Obținem valoarea caracteristicii ca un șir de caractere
+        String command = characteristic->getValue().c_str(); // Conversia la const char* și apoi la String Arduino
+        
+        Serial.print("Comandă primită: ");
+        Serial.println(command);
+        
+        // Procesează comanda primită
+        if (_displayManager) {
+            // Afișarea semnului corespunzător
+            _displayManager->showTrafficSign(command.c_str());
+            
+            // Trimitere confirmare că semnul a fost afișat
+            sendStatusUpdate("Sign updated: " + command);
+        } else {
+            Serial.println("Error: Display Manager not initialized");
+            sendStatusUpdate("Error: Display Manager not initialized");
+        }
+    }
+}
+
+

@@ -8,6 +8,7 @@
 
 #include "BleManager.h"
 #include "DisplayManager.h"
+#include "Config.h"
 
 BleManager::BleManager(DisplayManager* displayManager) : 
     _displayManager(displayManager),
@@ -21,7 +22,7 @@ BleManager::BleManager(DisplayManager* displayManager) :
 
 void BleManager::init() {
     // Inițializare BLE
-    BLEDevice::init("Traffic Sign");
+    BLEDevice::init(DEVICE_NAME);
     
     // Creare server BLE
     _pServer = BLEDevice::createServer();

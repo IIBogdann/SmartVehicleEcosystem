@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.smarttrafficsigns.ble.BleConnection
 
@@ -26,12 +27,42 @@ fun SignControlScreen(
     onDisconnect: () -> Unit
 ) {
     val possibleCommands = remember {
-        listOf("STOP", "YIELD", "SPEED_LIMIT_30", "SPEED_LIMIT_50", "NO_ENTRY", "ACCIDENT_AHEAD")
+        listOf("STOP", "YIELD", "SPEED_LIMIT_30", "SPEED_LIMIT_50", "NO_ENTRY", "ACCIDENT", "ACCIDENT_AHEAD")
     }
     
     var selectedCommand by remember { mutableStateOf(possibleCommands.first()) }
     var customCommand by remember { mutableStateOf("") }
     var useCustomCommand by remember { mutableStateOf(false) }
+
+    // Text românesc pentru starea conexiunii
+    val connectionStatusText = when (connectionState) {
+        BleConnection.ConnectionState.CONNECTED -> "Conectat"
+        BleConnection.ConnectionState.CONNECTING -> "Se conectează…"
+        BleConnection.ConnectionState.DISCONNECTED -> "Deconectat"
+        BleConnection.ConnectionState.DISCONNECTING -> "Se deconectează…"
+        BleConnection.ConnectionState.ERROR -> "Eroare"
+    }
+
+    // Etichete și descrieri în limba română pentru comenzi
+    val commandLabels = mapOf(
+        "STOP" to "STOP",
+        "YIELD" to "Cedează trecerea",
+        "SPEED_LIMIT_30" to "Limită 30 km/h",
+        "SPEED_LIMIT_50" to "Limită 50 km/h",
+        "NO_ENTRY" to "Acces interzis",
+        "ACCIDENT" to "Accident",
+        "ACCIDENT_AHEAD" to "Accident în față"
+    )
+
+    val commandDescriptions = mapOf(
+        "STOP" to "Semn de oprire obligatorie",
+        "YIELD" to "Cedează trecerea",
+        "SPEED_LIMIT_30" to "Limită de viteză 30 km/h",
+        "SPEED_LIMIT_50" to "Limită de viteză 50 km/h",
+        "NO_ENTRY" to "Accesul interzis",
+        "ACCIDENT" to "Accident",
+        "ACCIDENT_AHEAD" to "Accident în față"
+    )
     
     Scaffold(
         topBar = {
@@ -54,7 +85,15 @@ fun SignControlScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Status card
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (connectionState == BleConnection.ConnectionState.CONNECTED)
+                        Color(0xFF4CAF50) else MaterialTheme.colorScheme.surface,
+                    contentColor = if (connectionState == BleConnection.ConnectionState.CONNECTED)
+                        Color.White else MaterialTheme.colorScheme.onSurface
+                )
+            ) {
                 Column(
                     modifier = Modifier
                         .padding(16.dp)
@@ -67,7 +106,7 @@ fun SignControlScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Conexiune: ${connectionState.name}",
+                        text = "Conexiune: $connectionStatusText",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     if (statusMessage.isNotEmpty()) {
@@ -86,24 +125,26 @@ fun SignControlScreen(
             )
             
             // Lista de comenzi predefinite
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 possibleCommands.forEach { command ->
                     FilterChip(
+                        modifier = Modifier.fillMaxWidth(),
                         selected = !useCustomCommand && selectedCommand == command,
                         onClick = {
                             useCustomCommand = false
                             selectedCommand = command
                         },
-                        label = { Text(text = command.replace("_", " ")) }
+                        label = { Text(text = commandLabels[command] ?: command) }
                     )
                 }
                 
                 FilterChip(
+                        modifier = Modifier.fillMaxWidth(),
                     selected = useCustomCommand,
                     onClick = { useCustomCommand = true },
                     label = { Text(text = "Personalizat") }
@@ -148,12 +189,9 @@ fun SignControlScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(text = "STOP - Semn de oprire obligatorie")
-                    Text(text = "YIELD - Cedează trecerea")
-                    Text(text = "SPEED_LIMIT_30 - Limită de viteză 30 km/h")
-                    Text(text = "SPEED_LIMIT_50 - Limită de viteză 50 km/h")
-                    Text(text = "NO_ENTRY - Accesul interzis")
-                    Text(text = "ACCIDENT_AHEAD - Accident în față")
+                    commandDescriptions.forEach { (key, desc) ->
+                        Text(text = "${commandLabels[key]} - $desc")
+                    }
                     Text(text = "Pentru comenzi personalizate, folosiți formatul JSON: " +
                             "{ \"command\": \"COMMAND_NAME\", \"params\": { \"key\": \"value\" } }")
                 }

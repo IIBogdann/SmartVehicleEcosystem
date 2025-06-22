@@ -4,7 +4,7 @@
  * Gestionează comunicarea BLE pentru Adaptive Traffic System
  * Permite controlul display-ului e-paper prin BLE de pe aplicația Android
  * 
- * Autor: Bulgariu (Mihăilă) Elena-Iuliana & Mihăilă Bogdan-Iulian
+ * Autor: Bulgariu (Mihăilă) Elena-Iuliana
  */
 
 #ifndef BLE_MANAGER_H

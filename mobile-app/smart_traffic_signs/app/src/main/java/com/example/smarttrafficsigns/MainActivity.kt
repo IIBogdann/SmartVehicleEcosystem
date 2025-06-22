@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import com.example.smarttrafficsigns.NotificationUtils
 import com.example.smarttrafficsigns.ble.BleConnection
 import com.example.smarttrafficsigns.ble.BleScanner
 import com.example.smarttrafficsigns.ui.DeviceListScreen
@@ -84,6 +85,16 @@ class MainActivity : ComponentActivity() {
         // Starea conexiunii BLE
         val connectionState by bleConnection.connectionState.collectAsState()
         val statusMessage by bleConnection.statusMessage.collectAsState()
+
+        // Trimite notificare dacă mesajul conține "Accident"
+        LaunchedEffect(statusMessage) {
+            statusMessage?.let { msg ->
+                val lower = msg.lowercase()
+                if (lower.contains("accident")) {
+                    NotificationUtils.showAccidentNotification(this@MainActivity, msg)
+                }
+            }
+        }
 
         // Ținem minte dispozitivul conectat
         var connectedDevice by remember { mutableStateOf<BluetoothDevice?>(null) }

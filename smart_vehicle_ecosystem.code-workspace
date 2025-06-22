@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "traffic_sign_1",
+			"path": "../PlatformIO/Projects/traffic_sign_1"
+		},
+		{
+			"name": "traffic_sign_2",
+			"path": "../PlatformIO/Projects/traffic_sign_2"
+		},
+		{
+			"name": "accident_test",
+			"path": "../PlatformIO/Projects/accident_test"
+		}
+	],
+	"settings": {}
+}
