@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import com.example.smarttrafficsigns.NotificationUtils
 import com.example.smarttrafficsigns.ble.BleConnection
 import com.example.smarttrafficsigns.ble.BleScanner
+import com.example.smarttrafficsigns.ble.ClassicScanner
 import com.example.smarttrafficsigns.ui.DeviceListScreen
 import com.example.smarttrafficsigns.ui.RequestPermissions
 import com.example.smarttrafficsigns.ui.SignControlScreen
@@ -29,6 +30,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 class MainActivity : ComponentActivity() {
 
     private lateinit var bleScanner: BleScanner
+    private lateinit var classicScanner: ClassicScanner
     // Gestionăm mai multe conexiuni simultane (una per dispozitiv)
     private val connections = mutableStateMapOf<String, BleConnection>()
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
@@ -41,6 +43,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         bleScanner = BleScanner(this)
+        classicScanner = ClassicScanner(this)
 
         setContent {
             SmartTrafficSignsTheme {
@@ -101,16 +104,28 @@ class MainActivity : ComponentActivity() {
         }
 
         // Colectăm lista de dispozitive
-        val devicesList by bleScanner.devices.collectAsState()
+        val bleDevices by bleScanner.devices.collectAsState()
+        val classicDevices by classicScanner.devices.collectAsState()
+        val devicesList = remember(bleDevices, classicDevices) {
+            val merged = bleDevices.toMutableList()
+            classicDevices.forEach { dev ->
+                if (merged.none { it.address == dev.address }) merged.add(dev)
+            }
+            merged.sortedBy { it.name ?: it.address }
+        }
 
         if (activeDevice == null) {
             // Dacă nu suntem conectați la niciun dispozitiv, afișăm lista de dispozitive
             DeviceListScreen(
                 devices = devicesList,
                 connectedMacs = connections.keys,
-                onRefresh = { bleScanner.startScan() },
+                onRefresh = {
+                    bleScanner.startScan()
+                    classicScanner.startScan()
+                },
                 onDeviceSelected = { device ->
                     bleScanner.stopScan()
+                    classicScanner.stopScan()
                     // Dacă nu avem deja o conexiune pentru acest dispozitiv o creăm
                     val mac = device.address
                     val connection = connections.getOrPut(mac) { BleConnection(this@MainActivity).apply { connect(device) } }
@@ -138,11 +153,13 @@ class MainActivity : ComponentActivity() {
                     }
                     activeDevice = null
                     bleScanner.startScan()
+                    classicScanner.startScan()
                 },
                 onBack = {
                     // Nu deconectăm, doar revenim la listă
                     activeDevice = null
                     bleScanner.startScan()
+                    classicScanner.startScan()
                 }
             )
         }
@@ -152,17 +169,21 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // Pornim scanarea doar dacă nu suntem conectați la un dispozitiv
         bleScanner.startScan()
+        classicScanner.startScan()
     }
 
     override fun onPause() {
         super.onPause()
         // Oprim scanarea când aplicația nu este în prim-plan pentru a economisi bateria
         bleScanner.stopScan()
+        classicScanner.stopScan()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         bleScanner.stopScan()
+        classicScanner.stopScan()
         connections.values.forEach { it.close() }
+        classicScanner.close()
     }
 }

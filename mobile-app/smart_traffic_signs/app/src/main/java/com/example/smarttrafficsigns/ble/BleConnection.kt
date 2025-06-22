@@ -15,7 +15,7 @@ import java.util.UUID
 /**
  * Clasa pentru gestionarea conexiunilor BLE și comunicarea cu dispozitivele ESP32-C3
  */
-class BleConnection(private val context: Context) {
+class BleConnection(private val context: Context) : DeviceConnection {
 
     companion object {
         private const val TAG = "BleConnection"
@@ -38,10 +38,10 @@ class BleConnection(private val context: Context) {
 
     // Flow-uri publice pentru observarea stării și a mesajelor
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
-    val connectionState: StateFlow<ConnectionState> = _connectionState
+    override val connectionState: StateFlow<ConnectionState> = _connectionState
 
     private val _statusMessage = MutableStateFlow<String?>(null)
-    val statusMessage: StateFlow<String?> = _statusMessage
+    override val statusMessage: StateFlow<String?> = _statusMessage
 
     // Referințe interne pentru conexiune
     private var bluetoothGatt: BluetoothGatt? = null
@@ -157,7 +157,7 @@ class BleConnection(private val context: Context) {
     /**
      * Deconectare de la dispozitivul curent
      */
-    fun disconnect() {
+    override fun disconnect() {
         bluetoothGatt?.let { gatt ->
             Log.i(TAG, "Deconectare de la dispozitivul: ${gatt.device.address}")
             _connectionState.value = ConnectionState.DISCONNECTING
@@ -170,7 +170,7 @@ class BleConnection(private val context: Context) {
      * @param command Comanda de trimis (format JSON sau text)
      * @return true dacă comanda a fost trimisă, false în caz contrar
      */
-    fun sendCommand(command: String): Boolean {
+    override fun sendCommand(command: String): Boolean {
         val characteristic = commandCharacteristic
         val gatt = bluetoothGatt
         
@@ -199,7 +199,7 @@ class BleConnection(private val context: Context) {
     /**
      * Curățare resurse
      */
-    fun close() {
+    override fun close() {
         bluetoothGatt?.close()
         bluetoothGatt = null
         commandCharacteristic = null
