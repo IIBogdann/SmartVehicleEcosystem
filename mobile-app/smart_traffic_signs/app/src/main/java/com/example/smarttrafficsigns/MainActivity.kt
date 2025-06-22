@@ -22,6 +22,7 @@ import com.example.smarttrafficsigns.ble.ClassicScanner
 import com.example.smarttrafficsigns.ble.DeviceConnection
 import com.example.smarttrafficsigns.ble.SppConnection
 import com.example.smarttrafficsigns.ui.ElysiumConnectScreen
+import com.example.smarttrafficsigns.ui.TagWriteScreen
 import com.example.smarttrafficsigns.ui.DeviceListScreen
 import com.example.smarttrafficsigns.ui.RequestPermissions
 import com.example.smarttrafficsigns.ui.SignControlScreen
@@ -90,6 +91,7 @@ class MainActivity : ComponentActivity() {
     private fun BleContent() {
         // Dispozitivul pentru care afișăm ecranul de control
         var activeDevice by remember { mutableStateOf<BluetoothDevice?>(null) }
+        var tagWriteMode by remember { mutableStateOf(false) }
 
         // Conexiunea activă (BLE sau SPP)
         val activeConn = activeDevice?.let { connections[it.address] }
@@ -153,7 +155,14 @@ class MainActivity : ComponentActivity() {
             )
         } else {
             // Dacă suntem conectați, afișăm ecranul de control
-            if (sppConn != null) {
+            if (tagWriteMode) {
+                TagWriteScreen(
+                    deviceName = activeDevice?.name ?: "Tag Write",
+                    onExit = {
+                        tagWriteMode = false
+                    }
+                )
+            } else if (sppConn != null) {
                 ElysiumConnectScreen(
                     deviceName = activeDevice?.name ?: activeDevice?.address ?: "Elysium RC",
                     connectionState = sppState,
@@ -179,7 +188,9 @@ class MainActivity : ComponentActivity() {
                 connectionState = bleState,
                 statusMessage = statusMessage ?: "",
                 onSendCommand = { command ->
-                    activeDevice?.let { dev -> connections[dev.address]?.sendCommand(command) } ?: false
+                    val sent = activeDevice?.let { dev -> connections[dev.address]?.sendCommand(command) } ?: false
+                    tagWriteMode = true
+                    sent
                 },
                 onDisconnect = {
                     activeDevice?.let { dev ->
