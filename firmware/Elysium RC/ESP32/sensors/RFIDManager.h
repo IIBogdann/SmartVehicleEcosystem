@@ -8,8 +8,8 @@
 #define RFID_TX_PIN 19  // ESP32 trimite date către modulul RFID (conectat la RXD al YRM1003)
 
 // Constants
-#define RFID_BUFFER_SIZE 64
-#define RFID_BAUD_RATE 9600
+#define RFID_BUFFER_SIZE 128
+#define RFID_BAUD_RATE 115200
 
 // Variabile pentru stocarea datelor
 extern String lastCardID;    // ID-ul ultimului card citit
@@ -22,6 +22,5 @@ void RFIDManager_update();
 String getRFIDCardID();
 bool isCardPresent();
 void sendRFIDCommand(const char* command);
-void processRFIDData(String data);
 
 #endif // RFID_MANAGER_H

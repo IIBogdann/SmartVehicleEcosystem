@@ -17,6 +17,7 @@
 #include "../sensors/RFIDManager.h"
 // Feedback
 #include "../feedback/BuzzerManager.h"
+#include "../alerts/AccidentDetector.h"
 
 
 // ******************* GLOBAL **************************************
@@ -26,6 +27,15 @@ BluetoothManager btManager;
 const int RXD1 = 16;
 const int TXD1 = 17;
 // *******************************************************************
+
+// ------- RFID STOP tag EPC ------------------
+const char* STOP_EPC = "E200470D88D068218CD6010E";
+static bool stopMode = false;
+static bool stopLatched = false;
+static unsigned long stopEnd = 0;
+// ---------------------------------------------
+const unsigned long STOP_COOLDOWN_MS = 10000; // 10s fara semn pentru reset
+static unsigned long lastStopSeen = 0;
 
 
 
@@ -53,6 +63,7 @@ void setup() {
   ServoMotor_init();
   UltrasonicSensors_init();
   Buzzer_init();
+  AccidentDetector_init();
   RFIDManager_init();
 
 
@@ -92,38 +103,50 @@ void setup() {
 }
 
 void loop() {
-  // Verificăm dacă avem comenzi de la Bluetooth
+  unsigned long now = millis();
+  // ieșire din stopMode dacă a expirat
+  // Cooldown STOP – latch se resetează doar după 10s fără semn
+  if(stopLatched && !isCardPresent() && (now - lastStopSeen >= STOP_COOLDOWN_MS)){
+    stopLatched = false;
+    Serial.println("[STOP] cooldown ended – STOP poate declanșa din nou");
+  }
+  if(stopMode && now >= stopEnd){
+    stopMode = false;
+    Serial.println("[STOP] 5 secunde expirate – control reluat");
+  }
+  // Verificăm dacă avem comenzi de la Bluetooth (ignorat în stopMode)
   String command = btManager.receiveData();
   
-  if (command.length() > 0) {
+  if (!stopMode && command.length() > 0) {
     Serial.print("Comandă primită: ");
     Serial.println(command);
-    
-    // Procesăm comanda
+
+    // === Control motor ===
     if (command == "F") {
-      // Înainte
-      DCMotor(true, false);
-    }
-    else if (command == "B") {
-      // Înapoi
-      DCMotor(false, true);
-    }
-    else if (command == "S") {
-      // Stop motor și centrare servo
+      DCMotor(true, false);                 // înainte
+    } else if (command == "B") {
+      DCMotor(false, true);                // înapoi
+    } else if (command == "N") {
+      DCMotor(false, false);               // neutral motor, direcţia rămâne nemodificată
+
+    // === Control direcţie ===
+    } else if (command == "L") {
+      ServoMotor(LEFT);                    // viraj stânga
+    } else if (command == "R") {
+      ServoMotor(RIGHT);                   // viraj dreapta
+    } else if (command == "C") {
+      ServoMotor(CENTER);                  // centru direcţie, motorul rămâne nemodificat
+
+    // === Stop total ===
+    } else if (command == "S") {
       DCMotor(false, false);
       ServoMotor(CENTER);
-    }
-    else if (command == "L") {
-      // Virare stânga
-      ServoMotor(LEFT);
-    }
-    else if (command == "R") {
-      // Virare dreapta
-      ServoMotor(RIGHT);
     }
   }
 
   readSensorsSequentially();
+  // Actualizează logica de detectare accident
+  AccidentDetector_update();
 
   String sensorData = String(distanceFront) + "," + 
                      String(distanceBack) + "," + 
@@ -133,17 +156,30 @@ void loop() {
   btManager.sendData(sensorData);
 
 
-  if (Serial1.available()) {
+  /*if (Serial1.available()) {
     mesaj = Serial1.readStringUntil('\n');
-  }
+  }*/
 
-  Serial.println(mesaj);
+  ///Serial.println(mesaj);
   
   // Actualizare stare modul RFID
   RFIDManager_update();
   
   // Verificare dacă a fost detectat un card nou
   if (isCardPresent() && lastCardID.length() > 0) {
+    // STOP tag logic
+    if(lastCardID.equalsIgnoreCase(String(STOP_EPC))){
+      lastStopSeen = millis();
+      if(!stopMode && !stopLatched){
+        stopLatched = true;
+        Serial.println("[STOP] Semn STOP detectat – oprire 5 secunde");
+        DCMotor(false,false);
+        ServoMotor(CENTER);
+        stopMode = true;
+        stopEnd  = millis() + 5000;
+      }
+    }
+
     Serial.print("Card RFID detectat: ");
     Serial.println(lastCardID);
     // Trimite ID-ul cardului prin Bluetooth

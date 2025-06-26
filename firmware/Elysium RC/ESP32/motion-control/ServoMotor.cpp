@@ -16,19 +16,14 @@ void ServoMotor_init() {
 }
 
 void ServoMotor(int position) {
-
-  Serial.print("Mișcare de la ");
-  Serial.print(currentServoAngle);
-  Serial.print(" la ");
-  Serial.println(position);
-  
-  // Determinăm direcția de mișcare
-  int step = (position > currentServoAngle) ? 1 : -1;
-  
-  // Mișcăm gradual servo-ul
-  while (currentServoAngle != position) {
-    currentServoAngle += step;
-    servo.write(currentServoAngle);
-    delay(15);
+  if (position == currentServoAngle) {
+    return; // Nu e nevoie de mișcare
   }
+
+  Serial.print("Servo write la ");
+  Serial.println(position);
+
+  servo.write(position);   // Mutare instantanee
+  currentServoAngle = position;
+  delay(50);               // mic timp pentru stabilizare
 }

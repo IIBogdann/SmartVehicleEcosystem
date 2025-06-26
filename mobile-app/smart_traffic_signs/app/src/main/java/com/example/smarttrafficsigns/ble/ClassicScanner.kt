@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * Utilizare:
  *   val scanner = ClassicScanner(context)
- *   scanner.startScan()
+ *   smai stiicanner.startScan()
  *   scanner.devices.collect { list -> /* afişează */ }
  *   ...
  *   scanner.close() // în onDestroy

@@ -11,5 +11,6 @@
 void Buzzer_init();
 void tone(int pin, int frequency, int duration = 0);
 void noTone(int pin);
+void Buzzer_update();
 
 #endif

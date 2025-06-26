@@ -6,7 +6,7 @@
 
 // În ServoControl.h
 #define LEFT 0
-#define CENTER 38
+#define CENTER 40
 #define RIGHT 80
 #define SERVO_PIN 22
 
