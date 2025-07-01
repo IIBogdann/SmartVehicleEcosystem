@@ -22,5 +22,6 @@ void RFIDManager_update();
 String getRFIDCardID();
 bool isCardPresent();
 void sendRFIDCommand(const char* command);
+bool RFID_writeEpc(const uint8_t* data, uint8_t len);
 
 #endif // RFID_MANAGER_H

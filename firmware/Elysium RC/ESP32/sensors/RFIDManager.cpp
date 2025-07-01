@@ -134,3 +134,63 @@ void parseYRMFrame(uint8_t* f, uint8_t len){
   Serial.println(" dBm");
 }
 
+/* =============================================================
+ *  RFID_writeEpc – blocant, scrie EPC-ul furnizat (max 12 B ASCII)
+ *  Returnează true dacă status = 0x00 sau 0x0E (no tag response)
+ * =============================================================*/
+bool RFID_writeEpc(const uint8_t* data, uint8_t len){
+  if(len == 0 || len > 12) return false;
+
+  static const uint8_t CMD_INV_STOP[]  = {0xBB,0x00,0x28,0x00,0x00,0x28,0x7E};
+  static const uint8_t CMD_INV_START[] = {0xBB,0x00,0x27,0x00,0x03,0x22,0xFF,0xFF,0x4A,0x7E};
+
+  auto calcCS = [](const uint8_t* f, uint16_t len)->uint8_t{
+    uint8_t s = 0; for(uint16_t i = 1; i < len-2; ++i) s += f[i]; return s;
+  };
+
+  // 1. Stop inventar continuu
+  Serial2.write(CMD_INV_STOP, sizeof(CMD_INV_STOP));
+  Serial2.flush();
+  delay(35);
+
+  // 2. Construim cadrul 0x49 – EPC bank, WordPtr=2
+  uint16_t words = (len + 1) >> 1;
+  uint16_t PL    = 4 + 1 + 2 + 2 + words*2;
+  uint8_t  frm[48]; uint8_t i = 0;
+  frm[i++] = 0xBB; frm[i++] = 0x00; frm[i++] = 0x49;
+  frm[i++] = PL >> 8; frm[i++] = PL;
+  for(int k=0; k<4; ++k) frm[i++] = 0x00;      // AccessPwd = 0
+  frm[i++] = 0x01;                              // MemBank EPC
+  frm[i++] = 0x00; frm[i++] = 0x02;             // WordPtr = 2
+  frm[i++] = words >> 8; frm[i++] = words;      // WordCnt
+  for(uint8_t k=0; k<len; ++k) frm[i++] = data[k];
+  if(len & 1) frm[i++] = 0x00;                  // pad dacă impar
+  frm[i] = calcCS(frm, i + 2); i++;             // checksum
+  frm[i++] = 0x7E;                              // tail
+
+  Serial2.write(frm, i);
+  Serial2.flush();
+
+  // 3. Așteaptă ACK max 250 ms
+  uint8_t resp[32]; uint8_t r = 0; uint32_t t0 = millis();
+  while(millis() - t0 < 250 && r < sizeof(resp)){
+    if(Serial2.available()){
+      resp[r++] = Serial2.read();
+      if(resp[r-1] == 0x7E) break;
+    }
+  }
+  uint8_t status = 0xFF;
+  for(uint8_t p = 0; p + 7 < r; ++p){
+    if(resp[p] == 0xBB && resp[p+1] == 0x01 && resp[p+2] == 0x49){
+      status = resp[p+5];
+      break;
+    }
+  }
+
+  // 4. Restart inventar
+  Serial2.write(CMD_INV_START, sizeof(CMD_INV_START));
+  Serial2.flush();
+
+  return (status == 0x00 || status == 0x0E);
+}
+

@@ -92,6 +92,7 @@ class MainActivity : ComponentActivity() {
         // Dispozitivul pentru care afișăm ecranul de control
         var activeDevice by remember { mutableStateOf<BluetoothDevice?>(null) }
         var tagWriteMode by remember { mutableStateOf(false) }
+    var lastSignCommand by remember { mutableStateOf<String?>(null) }
 
         // Conexiunea activă (BLE sau SPP)
         val activeConn = activeDevice?.let { connections[it.address] }
@@ -162,7 +163,7 @@ class MainActivity : ComponentActivity() {
                     statusMessage = statusMessage ?: "",
                     onWriteTag = {
                         activeDevice?.let { dev ->
-                            connections[dev.address]?.sendCommand("{\"action\":\"WRITE_TAG\"}")
+                            connections.values.firstOrNull { it is com.example.smarttrafficsigns.ble.SppConnection }?.sendCommand("{\"action\":\"WRITE_TAG\",\"type\":\"${lastSignCommand ?: ""}\"}")
                         } ?: false
                     },
                     onExit = {
@@ -196,6 +197,7 @@ class MainActivity : ComponentActivity() {
                 statusMessage = statusMessage ?: "",
                 onSendCommand = { command ->
                     val sent = activeDevice?.let { dev -> connections[dev.address]?.sendCommand(command) } ?: false
+                    if(sent) lastSignCommand = command
                     tagWriteMode = true
                     sent
                 },

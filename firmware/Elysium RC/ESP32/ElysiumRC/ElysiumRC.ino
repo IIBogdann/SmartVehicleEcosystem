@@ -1,6 +1,7 @@
 
 #include <ESP32Servo.h>
 #include <Arduino.h>
+#include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -40,6 +41,9 @@ static unsigned long lastStopSeen = 0;
 // --- RFID write mode state ---
 static bool rfidWriteMode = false;
 static String writePayload = "";
+// --- date pentru scriere tag ---
+static String lastSignCode = "";   // "S", "Y", "30", "50" etc.
+static int    currentHeadingDeg = -1;
 
 
 
@@ -120,39 +124,48 @@ void loop() {
   }
   // Verificăm dacă avem comenzi de la Bluetooth (ignorat în stopMode)
   String command = btManager.receiveData();
+  if(command.length()) Serial.printf("RX raw: %s\n", command.c_str());
   
   if (!stopMode && command.length() > 0) {
     Serial.print("Comandă primită: ");
     Serial.println(command);
 
-  // --- RFID Tag write command ---
-  if(command.startsWith("WRITE_TAG:")){
-    String params = command.substring(10); // asteptam TYPE,x,y,z
-    int p1 = params.indexOf(',');
-    int p2 = params.indexOf(',', p1 + 1);
-    int p3 = params.indexOf(',', p2 + 1);
-    if(p1 > 0 && p2 > p1 && p3 > p2){
-      String type = params.substring(0, p1);
-      String xs   = params.substring(p1 + 1, p2);
-      String ys   = params.substring(p2 + 1, p3);
-      String zs   = params.substring(p3 + 1);
-      int xi = xs.toInt();
-      int yi = ys.toInt();
-      int zi = zs.toInt();
-      if(type.length() > 0 && type.length() <= 2 && xi >= 0 && xi < 1000 && yi >= 0 && yi < 1000 && zi >= 0 && zi < 1000){
-        char buf3[4];
-        String payload = type;
-        sprintf(buf3, "%03d", xi); payload += buf3;
-        sprintf(buf3, "%03d", yi); payload += buf3;
-        sprintf(buf3, "%03d", zi); payload += buf3;
-        writePayload = payload;
-        rfidWriteMode = true;
-      } else {
-        btManager.sendData("TAG_WRITE:PARAM_ERR");
+  // --- WRITE_TAG (poate include \"type\") ---
+  if(command.indexOf("WRITE_TAG") >= 0){
+    // Dacă mesajul este JSON şi conţine "type":"..." actualizăm lastSignCode
+    int pos = command.indexOf("\"type\":\"");
+    if(pos >= 0){
+      pos += 8; // trece de \"type":"
+      int endq = command.indexOf('"', pos);
+      if(endq > pos){
+        String t = command.substring(pos, endq);
+        t.toUpperCase();
+        if(t == "STOP" || t == "S")          lastSignCode = "S";
+        else if(t == "YIELD" || t == "Y")    lastSignCode = "Y";
+        else if(t == "30" || t == "SPEED_LIMIT_30") lastSignCode = "30";
+        else if(t == "50" || t == "SPEED_LIMIT_50") lastSignCode = "50";
       }
-    } else {
-      btManager.sendData("TAG_WRITE:FORMAT_ERR");
     }
+
+    if(lastSignCode.length() == 0 || currentHeadingDeg < 0){
+      btManager.sendData("TAG_WRITE:NO_DATA");
+    } else {
+      char buf[16];
+      sprintf(buf, "%s%03d", lastSignCode.c_str(), currentHeadingDeg);
+      writePayload = String(buf);
+      rfidWriteMode = true;
+    }
+  }
+
+  // --- Comenzi semn ---
+  if(command == "STOP"){
+    lastSignCode = "S";
+  } else if(command == "YIELD"){
+    lastSignCode = "Y";
+  } else if(command == "SPEED_LIMIT_30" || command == "30"){
+    lastSignCode = "30";
+  } else if(command == "SPEED_LIMIT_50" || command == "50"){
+    lastSignCode = "50";
   }
   // === Control motor ===
     if (command == "F") {
@@ -189,9 +202,19 @@ void loop() {
   btManager.sendData(sensorData);
 
 
-  /*if (Serial1.available()) {
-    mesaj = Serial1.readStringUntil('\n');
-  }*/
+  // === Date de orientare de la Arduino UNO ===
+  if(Serial1.available()){
+    String line = Serial1.readStringUntil('\n');
+    line.trim();
+    // parsam X si Y
+    int x=0,y=0;
+    if(sscanf(line.c_str(), "Counter: %*d, X: %d, Y: %d", &x, &y) == 2){
+      float headingRad = atan2((float)y, (float)x);
+      float headingDegF = headingRad * 180.0 / PI;
+      if(headingDegF < 0) headingDegF += 360.0;
+      currentHeadingDeg = (int)(headingDegF + 0.5f); // rotunjit
+    }
+  }
 
   ///Serial.println(mesaj);
   
