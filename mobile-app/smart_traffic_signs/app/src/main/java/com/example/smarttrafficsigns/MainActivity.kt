@@ -158,6 +158,13 @@ class MainActivity : ComponentActivity() {
             if (tagWriteMode) {
                 TagWriteScreen(
                     deviceName = activeDevice?.name ?: "Tag Write",
+                    writeEnabled = bleState == BleConnection.ConnectionState.CONNECTED || sppState == SppConnection.State.CONNECTED,
+                    statusMessage = statusMessage ?: "",
+                    onWriteTag = {
+                        activeDevice?.let { dev ->
+                            connections[dev.address]?.sendCommand("{\"action\":\"WRITE_TAG\"}")
+                        } ?: false
+                    },
                     onExit = {
                         tagWriteMode = false
                     }

@@ -37,6 +37,10 @@ static unsigned long stopEnd = 0;
 const unsigned long STOP_COOLDOWN_MS = 10000; // 10s fara semn pentru reset
 static unsigned long lastStopSeen = 0;
 
+// --- RFID write mode state ---
+static bool rfidWriteMode = false;
+static String writePayload = "";
+
 
 
 
@@ -121,7 +125,36 @@ void loop() {
     Serial.print("Comandă primită: ");
     Serial.println(command);
 
-    // === Control motor ===
+  // --- RFID Tag write command ---
+  if(command.startsWith("WRITE_TAG:")){
+    String params = command.substring(10); // asteptam TYPE,x,y,z
+    int p1 = params.indexOf(',');
+    int p2 = params.indexOf(',', p1 + 1);
+    int p3 = params.indexOf(',', p2 + 1);
+    if(p1 > 0 && p2 > p1 && p3 > p2){
+      String type = params.substring(0, p1);
+      String xs   = params.substring(p1 + 1, p2);
+      String ys   = params.substring(p2 + 1, p3);
+      String zs   = params.substring(p3 + 1);
+      int xi = xs.toInt();
+      int yi = ys.toInt();
+      int zi = zs.toInt();
+      if(type.length() > 0 && type.length() <= 2 && xi >= 0 && xi < 1000 && yi >= 0 && yi < 1000 && zi >= 0 && zi < 1000){
+        char buf3[4];
+        String payload = type;
+        sprintf(buf3, "%03d", xi); payload += buf3;
+        sprintf(buf3, "%03d", yi); payload += buf3;
+        sprintf(buf3, "%03d", zi); payload += buf3;
+        writePayload = payload;
+        rfidWriteMode = true;
+      } else {
+        btManager.sendData("TAG_WRITE:PARAM_ERR");
+      }
+    } else {
+      btManager.sendData("TAG_WRITE:FORMAT_ERR");
+    }
+  }
+  // === Control motor ===
     if (command == "F") {
       DCMotor(true, false);                 // înainte
     } else if (command == "B") {
@@ -184,6 +217,16 @@ void loop() {
     Serial.println(lastCardID);
     // Trimite ID-ul cardului prin Bluetooth
     btManager.sendData("RFID:" + lastCardID);
+  }
+
+  // === Execută scriere EPC dacă este în writeMode ===
+  if(rfidWriteMode){
+    uint8_t bytes[12] = {0};
+    uint8_t L = min((uint8_t)writePayload.length(), (uint8_t)12);
+    memcpy(bytes, writePayload.c_str(), L);
+    bool ok = RFID_writeEpc(bytes, L);
+    btManager.sendData(ok ? "TAG_WRITE:OK" : "TAG_WRITE:ERR");
+    rfidWriteMode = false;
   }
   
   delay(10);
