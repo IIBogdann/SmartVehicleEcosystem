@@ -73,16 +73,17 @@ void loop() {
   Serial.println(voltage);
   
 
-  Serial1.print("Counter: ");
+  // Transmisie compactă pentru ESP32 (parsează $ARD, cnt,x,y,z,v)
+  Serial1.print("$ARD,");
   Serial1.print(counter);
-  Serial1.print(", X: ");
+  Serial1.print(',');
   Serial1.print(x);
-  Serial1.print(", Y: ");
+  Serial1.print(',');
   Serial1.print(y);
-  Serial1.print(", Z: ");
+  Serial1.print(',');
   Serial1.print(z);
-  Serial1.print(" Voltage:");
-  Serial1.println(voltage);
+  Serial1.print(',');
+  Serial1.println(voltage,2);
 
 
 

@@ -228,7 +228,7 @@ void loop() {
                      String(distanceLeft) + "," + 
                      String(distanceRight);
 
-  btManager.sendData(sensorData);
+  btManager.sendData("$SEN," + sensorData);
 
 
   // === Date de orientare de la Arduino UNO ===
@@ -236,10 +236,8 @@ void loop() {
     String line = Serial1.readStringUntil('\n');
     line.trim();
     // parsam X si Y
-    int x=0,y=0;
-    if(sscanf(line.c_str(), "Counter: %*d, X: %d, Y: %d", &x, &y) == 2){
-      currentY = y;
-      hasY = true;
+    if(line.startsWith("$ARD,")){
+      btManager.sendData(line);
     }
   }
 
