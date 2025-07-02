@@ -10,6 +10,9 @@
 // Core
 #include "../core/BluetoothManager.h"
 #include "../core/TaskManager.h"
+#include "../core/AutonomousTask.h"
+// Include implementation to ensure compilation in Arduino build system
+#include "../core/AutonomousTask.cpp"
 // Actuators
 #include "../motion-control/DCMotor.h"
 #include "../motion-control/ServoMotor.h"
@@ -32,7 +35,7 @@ const int TXD1 = 17;
 // ------- RFID sign handling ------------------
 // STOP_EPC păstrat doar pentru referinţă, nu mai este folosit direct
 const char* STOP_EPC = "E200470D88D068218CD6010E";
-static bool stopMode = false;
+volatile bool stopMode = false;
 static bool stopLatched = false;
 static unsigned long stopEnd = 0;
 
@@ -41,7 +44,7 @@ const int NORMAL_MOTOR_SPEED = 190;
 
 // YIELD handling
 const int  YIELD_SPEED = 100;           // duty pentru cedare (0-255)  // <= va deveni MOTOR_SPEED când yieldMode activ
-static bool yieldMode  = false;         // true cât timp tag YIELD este prezent
+volatile bool yieldMode  = false;         // true cât timp tag YIELD este prezent
 // ---------------------------------------------
 const unsigned long STOP_COOLDOWN_MS = 10000; // 10s fara semn pentru reset
 static unsigned long lastStopSeen = 0;
@@ -119,6 +122,7 @@ void setup() {
   ServoMotor(CENTER); delay(1000);
 
   Tasks_init();
+  AutonomousTask_init();
   
   //---------------------- RFID -------------------------------------------------
   Serial.println("\nRFID Reader test..."); delay(1000);
@@ -197,8 +201,17 @@ void loop() {
     lastSignCode = "50";
   }
   // === Control motor ===
+    // Dacă primim comandă directă de control, ieşim imediat din modul autonom
+    if(command=="F"||command=="B"||command=="N"||command=="L"||command=="R"||command=="C"){
+      currentMode = MODE_MANUAL;
+    }
     if (command == "F") {
       DCMotor(true, false);                 // înainte
+    } else if(command == "AUTO_START"){
+      currentMode = MODE_AUTONOMOUS;
+    } else if(command == "AUTO_STOP"){
+      currentMode = MODE_MANUAL;
+
     } else if (command == "B") {
       DCMotor(false, true);                // înapoi
     } else if (command == "N") {
@@ -238,6 +251,10 @@ void loop() {
     // parsam X si Y
     if(line.startsWith("$ARD,")){
       btManager.sendData(line);
+      int comma = line.indexOf(',',5);
+      if(comma > 5){
+        arduinoCounter = line.substring(5, comma).toInt();
+      }
     }
   }
 
