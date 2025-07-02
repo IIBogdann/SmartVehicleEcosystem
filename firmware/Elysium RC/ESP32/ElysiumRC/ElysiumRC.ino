@@ -29,11 +29,19 @@ const int RXD1 = 16;
 const int TXD1 = 17;
 // *******************************************************************
 
-// ------- RFID STOP tag EPC ------------------
+// ------- RFID sign handling ------------------
+// STOP_EPC păstrat doar pentru referinţă, nu mai este folosit direct
 const char* STOP_EPC = "E200470D88D068218CD6010E";
 static bool stopMode = false;
 static bool stopLatched = false;
 static unsigned long stopEnd = 0;
+
+// viteză normală implicită
+const int NORMAL_MOTOR_SPEED = 190;
+
+// YIELD handling
+const int  YIELD_SPEED = 100;           // duty pentru cedare (0-255)  // <= va deveni MOTOR_SPEED când yieldMode activ
+static bool yieldMode  = false;         // true cât timp tag YIELD este prezent
 // ---------------------------------------------
 const unsigned long STOP_COOLDOWN_MS = 10000; // 10s fara semn pentru reset
 static unsigned long lastStopSeen = 0;
@@ -48,6 +56,14 @@ static bool   hasY = false;
 
 // timp până la care suprimăm print-uri diagnostice
 volatile unsigned long muteConsoleUntil = 0;
+
+// ------------------- helper -------------------
+char getSignCode(const String& epc){
+  if(epc.length() < 2) return 0;
+  String byteStr = epc.substring(0,2);
+  int val = strtol(byteStr.c_str(), nullptr, 16);
+  return (char)val;
+}
 
 
 
@@ -238,7 +254,8 @@ void loop() {
   bool present = isCardPresent();
   if(present && lastCardID.length() > 0 && !cardReported){
     // Semnalăm o singură dată când intră în câmp
-    if(lastCardID.equalsIgnoreCase(String(STOP_EPC))){
+    char signCode = getSignCode(lastCardID);
+    if(signCode == 'S'){
       lastStopSeen = millis();
       if(!stopMode && !stopLatched){
         stopLatched = true;
@@ -247,6 +264,13 @@ void loop() {
         ServoMotor(CENTER);
         stopMode = true;
         stopEnd  = millis() + 5000;
+      }
+    } else if(signCode == 'Y'){
+      if(!yieldMode){
+        yieldMode = true;
+        Serial.println("[YIELD] Semn CEDEAZĂ detectat – reducere viteză");
+        MOTOR_SPEED = YIELD_SPEED;
+        ledcWrite(PIN_MOTOR_ENA, MOTOR_SPEED);
       }
     }
     if(!rfidWriteMode){
@@ -257,6 +281,13 @@ void loop() {
     cardReported = true;
   }
   else if(!present && cardReported){
+    // Dacă părăseşte zona YIELD revenim la viteza normală
+    if(yieldMode){
+      yieldMode = false;
+      Serial.println("[YIELD] Tag CEDEAZĂ îndepărtat – revenire viteză normală");
+      MOTOR_SPEED = NORMAL_MOTOR_SPEED;
+      ledcWrite(PIN_MOTOR_ENA, MOTOR_SPEED);
+    }
     // Tag-ul a plecat din rază -> notificăm o singură dată
     if(!rfidWriteMode){
       Serial.print("Tag-ul: "); Serial.print(lastCardID); Serial.println(" a fost indepartat");
@@ -272,7 +303,9 @@ void loop() {
     memcpy(bytes, writePayload.c_str(), Lstr);      // rest rămân 0
     Serial.print("[TAG] Writing EPC: "); Serial.println(writePayload);
     bool ok = RFID_writeEpc(bytes, 12);            // scriem 6 words complete
-    btManager.sendData(ok ? "TAG_WRITE:OK" : "TAG_WRITE:ERR");
+    String notif = ok ? "TAG_WRITE:OK" : "TAG_WRITE:ERR";
+    Serial.print("[BLE] sendData: "); Serial.println(notif);
+    btManager.sendData(notif);
     rfidWriteMode = false;
   }
   

@@ -10,7 +10,7 @@ extern const int PIN_MOTOR_ENA;
 extern const int PWM_CHANNEL;
 extern const int PWM_FREQ;
 extern const int PWM_RESOLUTION;
-extern const int MOTOR_SPEED;
+extern int MOTOR_SPEED;
 
 // Variabile de stare
 extern bool isMovingForward;

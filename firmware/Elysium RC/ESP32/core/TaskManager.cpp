@@ -41,7 +41,7 @@ void obstacleDetectionTask(void *parameter) {
                           "Back: " + String(back) + " " +
                           "Left: " + String(left) + " " +
                           "Right: " + String(right);
-      ///Serial.println(mesajComplet);
+      Serial.println(mesajComplet);
     }
     
     // Buzzer gestionat de BuzzerManager → nu mai controlăm direct pinul aici

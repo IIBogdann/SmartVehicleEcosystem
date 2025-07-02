@@ -228,6 +228,7 @@ bool RFID_writeEpc(const uint8_t* data, uint8_t len){
 
 	Serial.print("\n\nIESIRE DIN MOD SCRIERE TAG...\n\n"); 
 
-  return (status == 0x00 || status == 0x0E);
+  // Consider 0xFF (no specific ACK but frame 0xFF received) also as success
+  return (status == 0x00 || status == 0x0E || status == 0xFF);
 }
 

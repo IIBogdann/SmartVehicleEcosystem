@@ -7,7 +7,7 @@ const int PIN_MOTOR_ENA = 21;  // ENABLE
 const int PWM_CHANNEL = 2;     // Canal PWM
 const int PWM_FREQ = 30000;    // Frecvență 30KHz
 const int PWM_RESOLUTION = 8;  // Rezoluție 8 biți (0-255)
-const int MOTOR_SPEED = 190;  // Viteza maximă (0-255)
+int MOTOR_SPEED = 190;  // Viteza maximă (0-255)
 
 
 // Variabile de stare
