@@ -39,11 +39,15 @@ const unsigned long STOP_COOLDOWN_MS = 10000; // 10s fara semn pentru reset
 static unsigned long lastStopSeen = 0;
 
 // --- RFID write mode state ---
-static bool rfidWriteMode = false;
+volatile bool rfidWriteMode = false;
 static String writePayload = "";
 // --- date pentru scriere tag ---
 static String lastSignCode = "";   // "S", "Y", "30", "50" etc.
-static int    currentHeadingDeg = -1;
+static int    currentY = 0;
+static bool   hasY = false;
+
+// timp până la care suprimăm print-uri diagnostice
+volatile unsigned long muteConsoleUntil = 0;
 
 
 
@@ -147,13 +151,22 @@ void loop() {
       }
     }
 
-    if(lastSignCode.length() == 0 || currentHeadingDeg < 0){
+    if(lastSignCode.length() == 0){
+      Serial.println("[TAG] Cannot write: missing signCode");
       btManager.sendData("TAG_WRITE:NO_DATA");
     } else {
       char buf[16];
-      sprintf(buf, "%s%03d", lastSignCode.c_str(), currentHeadingDeg);
+      if(hasY){
+        snprintf(buf, sizeof(buf), "%s%d", lastSignCode.c_str(), currentY);
+      } else {
+        strncpy(buf, lastSignCode.c_str(), sizeof(buf));
+        buf[sizeof(buf)-1] = '\0';
+      }
       writePayload = String(buf);
+      Serial.print("[TAG] Write mode ON, payload=");
+      Serial.println(writePayload);
       rfidWriteMode = true;
+      muteConsoleUntil = millis() + 5000; // 5 secunde fără spam în consolă
     }
   }
 
@@ -209,10 +222,8 @@ void loop() {
     // parsam X si Y
     int x=0,y=0;
     if(sscanf(line.c_str(), "Counter: %*d, X: %d, Y: %d", &x, &y) == 2){
-      float headingRad = atan2((float)y, (float)x);
-      float headingDegF = headingRad * 180.0 / PI;
-      if(headingDegF < 0) headingDegF += 360.0;
-      currentHeadingDeg = (int)(headingDegF + 0.5f); // rotunjit
+      currentY = y;
+      hasY = true;
     }
   }
 
@@ -221,9 +232,12 @@ void loop() {
   // Actualizare stare modul RFID
   RFIDManager_update();
   
-  // Verificare dacă a fost detectat un card nou
-  if (isCardPresent() && lastCardID.length() > 0) {
-    // STOP tag logic
+  // === Gestionare evenimente RFID (detectare / îndepărtare) ===
+  static bool cardReported = false;
+
+  bool present = isCardPresent();
+  if(present && lastCardID.length() > 0 && !cardReported){
+    // Semnalăm o singură dată când intră în câmp
     if(lastCardID.equalsIgnoreCase(String(STOP_EPC))){
       lastStopSeen = millis();
       if(!stopMode && !stopLatched){
@@ -235,19 +249,29 @@ void loop() {
         stopEnd  = millis() + 5000;
       }
     }
-
-    Serial.print("Card RFID detectat: ");
-    Serial.println(lastCardID);
-    // Trimite ID-ul cardului prin Bluetooth
-    btManager.sendData("RFID:" + lastCardID);
+    if(!rfidWriteMode){
+      Serial.print("Card RFID detectat: ");
+      Serial.println(lastCardID);
+      btManager.sendData("RFID:" + lastCardID);
+    }
+    cardReported = true;
+  }
+  else if(!present && cardReported){
+    // Tag-ul a plecat din rază -> notificăm o singură dată
+    if(!rfidWriteMode){
+      Serial.print("Tag-ul: "); Serial.print(lastCardID); Serial.println(" a fost indepartat");
+      btManager.sendData("RFID_REMOVED:" + lastCardID);
+    }
+    cardReported = false;
   }
 
   // === Execută scriere EPC dacă este în writeMode ===
   if(rfidWriteMode){
     uint8_t bytes[12] = {0};
-    uint8_t L = min((uint8_t)writePayload.length(), (uint8_t)12);
-    memcpy(bytes, writePayload.c_str(), L);
-    bool ok = RFID_writeEpc(bytes, L);
+    uint8_t Lstr = min((uint8_t)writePayload.length(), (uint8_t)12);
+    memcpy(bytes, writePayload.c_str(), Lstr);      // rest rămân 0
+    Serial.print("[TAG] Writing EPC: "); Serial.println(writePayload);
+    bool ok = RFID_writeEpc(bytes, 12);            // scriem 6 words complete
     btManager.sendData(ok ? "TAG_WRITE:OK" : "TAG_WRITE:ERR");
     rfidWriteMode = false;
   }

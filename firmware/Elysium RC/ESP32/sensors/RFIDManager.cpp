@@ -129,9 +129,13 @@ void parseYRMFrame(uint8_t* f, uint8_t len){
   cardDetected     = true;
   lastCardReadTime = millis();
 
-  Serial.print("EPC: "); Serial.print(epc);
-  Serial.print("  RSSI: "); Serial.print(rssiToDbm(rssi),1);
-  Serial.println(" dBm");
+  static String lastEpcPrinted = "";
+  if(epc != lastEpcPrinted){
+    Serial.print("EPC: "); Serial.print(epc);
+    Serial.print("  RSSI: "); Serial.print(rssiToDbm(rssi),1);
+    Serial.println(" dBm");
+    lastEpcPrinted = epc;
+  }
 }
 
 /* =============================================================
@@ -139,57 +143,90 @@ void parseYRMFrame(uint8_t* f, uint8_t len){
  *  Returnează true dacă status = 0x00 sau 0x0E (no tag response)
  * =============================================================*/
 bool RFID_writeEpc(const uint8_t* data, uint8_t len){
-  if(len == 0 || len > 12) return false;
+  if(len == 0 || len > 12) return false;          // max 12 ASCII
 
   static const uint8_t CMD_INV_STOP[]  = {0xBB,0x00,0x28,0x00,0x00,0x28,0x7E};
   static const uint8_t CMD_INV_START[] = {0xBB,0x00,0x27,0x00,0x03,0x22,0xFF,0xFF,0x4A,0x7E};
+  static const uint8_t CMD_SINGLE[]    = {0xBB,0x00,0x22,0x00,0x00,0x22,0x7E};
 
-  auto calcCS = [](const uint8_t* f, uint16_t len)->uint8_t{
-    uint8_t s = 0; for(uint16_t i = 1; i < len-2; ++i) s += f[i]; return s;
-  };
+  auto sumCS = [](const uint8_t* f, uint16_t l)->uint8_t{ uint8_t s=0; for(uint16_t i=1;i<l-2;++i) s+=f[i]; return s; };
 
   // 1. Stop inventar continuu
   Serial2.write(CMD_INV_STOP, sizeof(CMD_INV_STOP));
   Serial2.flush();
-  delay(35);
+  delay(10);
 
-  // 2. Construim cadrul 0x49 – EPC bank, WordPtr=2
-  uint16_t words = (len + 1) >> 1;
-  uint16_t PL    = 4 + 1 + 2 + 2 + words*2;
-  uint8_t  frm[48]; uint8_t i = 0;
-  frm[i++] = 0xBB; frm[i++] = 0x00; frm[i++] = 0x49;
-  frm[i++] = PL >> 8; frm[i++] = PL;
-  for(int k=0; k<4; ++k) frm[i++] = 0x00;      // AccessPwd = 0
-  frm[i++] = 0x01;                              // MemBank EPC
-  frm[i++] = 0x00; frm[i++] = 0x02;             // WordPtr = 2
-  frm[i++] = words >> 8; frm[i++] = words;      // WordCnt
-  for(uint8_t k=0; k<len; ++k) frm[i++] = data[k];
-  if(len & 1) frm[i++] = 0x00;                  // pad dacă impar
-  frm[i] = calcCS(frm, i + 2); i++;             // checksum
-  frm[i++] = 0x7E;                              // tail
+  // 2. Pauză scurtă pentru a ne asigura că tagul rămâne alimentat
+  delay(20);
+  while(Serial2.available()) Serial2.read();      // golește eventualele cadre vechi
 
-  Serial2.write(frm, i);
+  // 3. Construim frame 0x49 cu helper
+  uint8_t frame[64]; uint8_t i = 0;
+  uint16_t DL = (len + 1) >> 1;                   // word count (16-bit)
+  uint16_t PL = 4 + 1 + 2 + 2 + DL*2;             // payload length
+
+  frame[i++] = 0xBB; frame[i++] = 0x00; frame[i++] = 0x49;
+  frame[i++] = PL >> 8; frame[i++] = PL;
+  for(int k=0;k<4;++k) frame[i++] = 0x00;         // AccessPwd = 0x00000000
+  frame[i++] = 0x01;                              // MemBank EPC
+  frame[i++] = 0x00; frame[i++] = 0x02;           // WordPtr = 2
+  frame[i++] = DL >> 8; frame[i++] = DL;          // WordCnt
+  for(uint8_t k=0;k<len;++k) frame[i++] = data[k];
+  if(len & 1) frame[i++] = 0x00;                  // pad dacă len e impar
+  frame[i++] = 0x00;                              // checksum placeholder
+  frame[i++] = 0x7E;                              // tail
+  uint8_t frameLen = i;                           // total length including 7E
+  frame[frameLen - 2] = sumCS(frame, frameLen);   // compute checksum same as ref
+
+  // Debug: print frame we send
+  Serial.print("[RFID] TX frame (" ); Serial.print(i); Serial.println("):");
+  for(uint8_t k=0;k<i;++k){ Serial.print(frame[k], HEX); Serial.print(" "); } Serial.println();
+
+  Serial2.write(frame, i);
   Serial2.flush();
 
-  // 3. Așteaptă ACK max 250 ms
-  uint8_t resp[32]; uint8_t r = 0; uint32_t t0 = millis();
-  while(millis() - t0 < 250 && r < sizeof(resp)){
+  // 4. Așteaptă ACK max 250 ms
+  uint8_t resp[64]; uint8_t r = 0; uint32_t t0 = millis();
+  uint8_t status = 0xFF;
+  while(millis() - t0 < 300 && r < sizeof(resp)){
     if(Serial2.available()){
-      resp[r++] = Serial2.read();
-      if(resp[r-1] == 0x7E) break;
+      uint8_t b = Serial2.read();
+      if(r < sizeof(resp)) resp[r++] = b;
+      // detect end of a frame
+      if(b == 0x7E){
+        // scan this frame for ACK 0x49
+        for(uint8_t p = 0; p + 7 < r; ++p){
+          if(resp[p] == 0xBB && resp[p+1] == 0x01 && resp[p+2] == 0x49){
+            status = resp[p+5];
+          }
+        }
+        // dacă am găsit ACK iesim
+        if(status != 0xFF) break;
+        // altfel continuăm să citim alte cadre
+      }
     }
   }
-  uint8_t status = 0xFF;
-  for(uint8_t p = 0; p + 7 < r; ++p){
-    if(resp[p] == 0xBB && resp[p+1] == 0x01 && resp[p+2] == 0x49){
-      status = resp[p+5];
-      break;
+  Serial.print("[RFID] Write ACK status=0x");
+  Serial.println(status, HEX);
+
+  if(status == 0xFF){
+    Serial.print("Received frame: ");
+    for(uint8_t p = 0; p < r; ++p){
+      Serial.print(resp[p], HEX);
+      Serial.print(" ");
     }
+    Serial.println();
   }
 
-  // 4. Restart inventar
+  // 5. Restart inventar continuu
   Serial2.write(CMD_INV_START, sizeof(CMD_INV_START));
   Serial2.flush();
+
+  // evită false "removed"
+  lastCardReadTime = millis();
+  cardDetected     = true;
+
+	Serial.print("\n\nIESIRE DIN MOD SCRIERE TAG...\n\n"); 
 
   return (status == 0x00 || status == 0x0E);
 }

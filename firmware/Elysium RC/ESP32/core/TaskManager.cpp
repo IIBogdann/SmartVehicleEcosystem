@@ -2,6 +2,10 @@
 #include "../sensors/UltrasonicSensors.h"
 #include "../feedback/BuzzerManager.h"
 
+// Accesăm flag-ul definit în sketch-ul principal pentru modul de scriere tag
+extern volatile bool rfidWriteMode;
+extern volatile unsigned long muteConsoleUntil;
+
 // Declarăm coada pentru mesaje
 QueueHandle_t queue;
 
@@ -30,14 +34,15 @@ void obstacleDetectionTask(void *parameter) {
     long left  = distanceLeft;
     long right = distanceRight;
 
-    // Formăm un mesaj de diagnosticare
-    String mesajComplet = String("Obstacle Task: ") +
-                        "Front: " + String(front) + " " +
-                        "Back: " + String(back) + " " +
-                        "Left: " + String(left) + " " +
-                        "Right: " + String(right);
-                        
-    Serial.println(mesajComplet);
+    // Dacă suntem în modul de scriere tag, nu aglomerăm consola
+    if(millis() >= muteConsoleUntil){
+      String mesajComplet = String("Obstacle Task: ") +
+                          "Front: " + String(front) + " " +
+                          "Back: " + String(back) + " " +
+                          "Left: " + String(left) + " " +
+                          "Right: " + String(right);
+      ///Serial.println(mesajComplet);
+    }
     
     // Buzzer gestionat de BuzzerManager → nu mai controlăm direct pinul aici
     
