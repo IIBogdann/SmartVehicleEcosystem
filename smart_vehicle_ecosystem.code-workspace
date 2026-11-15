@@ -1,17 +1,28 @@
 {
-	"folders": [
-		{
-			"name": "traffic_sign_1",
-			"path": "../PlatformIO/Projects/traffic_sign_1"
-		},
-		{
-			"name": "traffic_sign_2",
-			"path": "../PlatformIO/Projects/traffic_sign_2"
-		},
-		{
-			"name": "accident_test",
-			"path": "../PlatformIO/Projects/accident_test"
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "name": "Smart Vehicle Ecosystem",
+      "path": "."
+    },
+    {
+      "name": "Vehicle firmware",
+      "path": "firmware/vehicle"
+    },
+    {
+      "name": "Traffic signs firmware",
+      "path": "firmware/traffic-signs"
+    },
+    {
+      "name": "Vehicle Android app",
+      "path": "mobile/vehicle-app"
+    },
+    {
+      "name": "Traffic signs Android app",
+      "path": "mobile/traffic-signs-app"
+    }
+  ],
+  "settings": {
+    "files.eol": "\n",
+    "files.encoding": "utf8"
+  }
 }

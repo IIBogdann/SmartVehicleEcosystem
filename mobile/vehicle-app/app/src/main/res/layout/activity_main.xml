@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <!-- ­­­­­­­­­­­­­­­ HEADER ­­­­­­­­­­­­­­­ -->
+
+    <!-- Selector mod condus -->
+    <Button
+        android:id="@+id/buttonMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Manual"
+        app:layout_constraintEnd_toStartOf="@+id/buttonStatus"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Status conexiune -->
+    <Button
+        android:id="@+id/buttonStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:backgroundTint="#FFA500"
+        android:text="Conectare..."
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toEndOf="@id/buttonMode"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- ­­­­­­­­­­­­­­­ DATE SENZORI ­­­­­­­­­­­­­­­ -->
+
+    <LinearLayout
+        android:id="@+id/sensorDataLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/buttonStatus" />
+
+    <!-- Car top view -->
+
+    <!-- DATE ARDUINO -->
+    <LinearLayout
+        android:id="@+id/arduinoDataLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginStart="8dp"
+        app:layout_constraintStart_toEndOf="@id/imgCar"
+        app:layout_constraintTop_toTopOf="@id/imgCar"
+        app:layout_constraintBottom_toBottomOf="@id/imgCar">
+
+        <TextView
+            android:id="@+id/counterText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CNT: --"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/xText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="X: --"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/yText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Y: --"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/zText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Z: --"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/voltageText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="V: --"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Sensor distances around car -->
+
+    <ImageView
+        android:id="@+id/imgCar"
+        android:layout_width="193dp"
+        android:layout_height="311dp"
+        android:layout_marginTop="4dp"
+        android:rotation="180"
+        android:src="@drawable/ic_car_top"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/sensorDataLayout" />
+
+    <TextView
+        android:id="@+id/distanceFrontText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="-20dp"
+        android:text="--"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toTopOf="@id/imgCar"
+        app:layout_constraintEnd_toEndOf="@id/imgCar"
+        app:layout_constraintStart_toStartOf="@id/imgCar" />
+
+    <TextView
+        android:id="@+id/distanceBackText"
+        android:layout_width="wrap_content"
+        android:layout_height="22dp"
+        android:layout_marginTop="-10dp"
+        android:text="--"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="@id/imgCar"
+        app:layout_constraintStart_toStartOf="@id/imgCar"
+        app:layout_constraintTop_toBottomOf="@id/imgCar" />
+
+    <TextView
+        android:id="@+id/distanceLeftText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="-30dp"
+        android:text="--"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@id/imgCar"
+        app:layout_constraintEnd_toStartOf="@id/imgCar"
+        app:layout_constraintTop_toTopOf="@id/imgCar" />
+
+    <TextView
+        android:id="@+id/distanceRightText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="-30dp"
+        android:text="--"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@id/imgCar"
+        app:layout_constraintStart_toEndOf="@id/imgCar"
+        app:layout_constraintTop_toTopOf="@id/imgCar" />
+
+    <!-- ­­­­­­­­­­­­­­­ CONSOLĂ ­­­­­­­­­­­­­­­ -->
+
+    <!-- ­­­­­­­­­­­­­­­ CONTROALE MANUALE ­­­­­­­­­­­­­­­ -->
+
+    <!-- Înainte -->
+    <ScrollView
+        android:id="@+id/consoleScroll"
+        android:layout_width="0dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="8dp"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toTopOf="@id/buttonForward"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/sensorDataLayout"
+        app:layout_constraintVertical_bias="0.951">
+
+        <TextView
+            android:id="@+id/consoleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:padding="4dp"
+            android:textIsSelectable="true"
+            android:textSize="12sp" />
+    </ScrollView>
+
+    <Button
+        android:id="@+id/buttonForward"
+        android:layout_width="100dp"
+        android:layout_height="80dp"
+        android:text="▲"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@id/buttonStop"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Stânga -->
+    <Button
+        android:id="@+id/buttonLeft"
+        android:layout_width="100dp"
+        android:layout_height="80dp"
+        android:layout_marginEnd="8dp"
+        android:text="◄"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toBottomOf="@id/buttonStop"
+        app:layout_constraintEnd_toStartOf="@id/buttonStop"
+        app:layout_constraintTop_toTopOf="@id/buttonStop" />
+
+    <!-- Stop -->
+    <Button
+        android:id="@+id/buttonStop"
+        android:layout_width="100dp"
+        android:layout_height="80dp"
+        android:backgroundTint="#FF0000"
+        android:text="■"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@id/buttonBackward"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Dreapta -->
+    <Button
+        android:id="@+id/buttonRight"
+        android:layout_width="100dp"
+        android:layout_height="80dp"
+        android:layout_marginStart="8dp"
+        android:text="►"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toBottomOf="@id/buttonStop"
+        app:layout_constraintStart_toEndOf="@id/buttonStop"
+        app:layout_constraintTop_toTopOf="@id/buttonStop" />
+
+    <!-- Înapoi -->
+    <Button
+        android:id="@+id/buttonBackward"
+        android:layout_width="100dp"
+        android:layout_height="80dp"
+        android:layout_marginBottom="8dp"
+        android:text="▼"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- ­­­­­­­­­­­­­­­ CONTROALE AUTONOM ­­­­­­­­­­­­­­­ -->
+
+    <Button
+        android:id="@+id/buttonAutoStart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Start"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/buttonAutoStop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Stop"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/buttonAutoStart" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

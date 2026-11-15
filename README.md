@@ -1,63 +1,40 @@
-# SmartVehicleEcosystem
+# Smart Vehicle Ecosystem
 
-## Descriere generală
-SmartVehicleEcosystem este un sistem integrat pentru vehicule autonome și infrastructură inteligentă de semaforizare, dezvoltat ca proiect de licență. Sistemul combină un vehicul autonom controlat prin ESP32 și Arduino cu o infrastructură de semne de circulație bazate pe RFID și ecrane E-ink.
+Smart Vehicle Ecosystem reunește o mașinuță controlată de ESP32 și Arduino, două semne de circulație cu ESP32-C3 și e-paper și două aplicații Android.
 
-## Componente principale
+Repository-ul este organizat pentru lucru în paralel de pe calculatoare diferite. Fiecare persoană lucrează într-o clonă proprie și într-o ramură scurtă; schimbările ajung în ramura stabilă numai prin Pull Request.
 
-### 1. Sistemul de control al vehiculului
-- Platformă hardware bazată pe ESP32 și Arduino
-- Control al mișcării prin motoare DC și servo
-- Sistem de detecție a obstacolelor cu senzori ultrasonici
-- Comunicare Bluetooth cu aplicația Android
-- Capacitate de citire RFID pentru recunoașterea semnelor de circulație
+## Componente
 
-### 2. Sistemul de semaforizare inteligentă
-- Semne de circulație cu ecrane E-ink și ESP32 Mini C3
-- Tag-uri RFID programabile cu informații de poziție și orientare
-- Comunicare între indicatoare prin WiFi/Bluetooth
-- Actualizare dinamică a conținutului în funcție de condițiile de trafic
+- `firmware/vehicle/` — firmware-ul mașinuței: mișcare, senzori, autonomie, RFID, Bluetooth și alerte ESP-NOW.
+- `firmware/traffic-signs/` — firmware-ul celor două semne: e-paper, BLE și ESP-NOW.
+- `mobile/vehicle-app/` — aplicația Android pentru controlul și monitorizarea mașinuței.
+- `mobile/traffic-signs-app/` — aplicația Android pentru administrarea semnelor și scrierea tagurilor prin cititorul montat momentan pe mașinuță.
+- `docs/PROTOCOLS.md` — contractele de comunicare dintre componente.
+- `PROJECT_MEMORY.md` — starea tehnică, deciziile și problemele cunoscute.
+- `CONTRIBUTING.md` — fluxul Git/GitHub folosit de echipă.
+- `docs/COLLABORATION.md` — protocolul live dintre cei doi colaboratori și asistenții lor locali.
+- `AGENTS.md` — reguli obligatorii pentru asistenții care lucrează în repository.
 
-### 3. Aplicația mobilă
-- Interfață pentru controlul vehiculului
-- Vizualizarea datelor senzoriale în timp real
-- Monitorizarea stării sistemului
+## Punct de plecare
 
-## Moduri de operare
-- **MANUAL**: Control complet al utilizatorului prin aplicația Android
-- **AUTO**: Control utilizator cu sisteme de siguranță active
-- **AUTONOMOUS**: Funcționare autonomă bazată pe trasee înregistrate
+Reorganizarea pornește din versiunea finală a proiectului de licență, commitul `255eb346d1274252a85744bd054145d6cfc5c5ca` din 3 iulie 2025. Aplicația mașinuței a fost importată din commitul său confirmat `aa017c153520ad6310e258ffeb054cfa49a7dc53`.
 
-## Structura proiectului
+## Înainte de lucru
 
-```
-SmartVehicleEcosystem/
-├── firmware/                      # Codul pentru microcontrolere
-│   ├── vehicle-control/           # Controlul vehiculului
-│   └── traffic-signs/             # Sistemul de semne de circulație
-├── mobile-app/                    # Aplicația Android
-├── hardware/                      # Documentație hardware
-├── docs/                          # Documentație detaliată
-└── tools/                         # Unelte și utilitare
-```
+1. Citește `AGENTS.md`, `PROJECT_MEMORY.md` și `CONTRIBUTING.md`.
+2. Actualizează ramura stabilă.
+3. Creează o ramură pentru o singură sarcină.
+4. Nu comite build-uri, APK-uri, fișiere `.bin`, cache-uri sau configurații locale.
+5. Dacă schimbi un protocol, actualizează simultan toate componentele afectate și `docs/PROTOCOLS.md`.
 
-## Instalare și configurare
+## Responsabilități uzuale
 
-### Cerințe
-- Arduino IDE sau PlatformIO
-- Android Studio pentru aplicația mobilă
-- ESP32 și componente hardware conform listei din documentație
+- Bogdan: mașinuța și aplicația mașinuței.
+- Iuliana: semnele și aplicația semnelor.
 
-### Compilare și încărcare
-1. Deschide proiectul vehiculului în Arduino IDE/PlatformIO
-2. Selectează placa ESP32
-3. Compilează și încarcă codul pe dispozitiv
+Acestea sunt responsabilități principale, nu restricții. Oricare poate lucra în orice zonă, însă schimbările comune trebuie anunțate și verificate de amândoi.
 
 ## Licență
-Proiect dezvoltat sub [licența Apache 2.0](LICENSE).
-Copyright 2025 Mihăilă Bogdan-Iulian și Bulgariu (Mihăilă) Elena-Iuliana
 
-## Contribuții
-Proiect realizat de:
-- **Mihăilă Bogdan-Iulian**: Dezvoltarea sistemului Elysium RC (vehiculul autonom)
-- **Bulgariu (Mihăilă) Elena-Iuliana**: Dezvoltarea sistemului de semaforizare adaptivă
+Proiectul păstrează licența Apache 2.0 din [LICENSE](LICENSE).
