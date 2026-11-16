@@ -1,65 +1,15 @@
-name: Sarcină de proiect
-description: Funcție, remediere, refactorizare sau activitate tehnică delimitată
-title: "[AREA] "
+name: Sarcina de proiect
+description: Un bug sau ceva de adaugat
 body:
-  - type: dropdown
-    id: area
-    attributes:
-      label: Domeniu principal
-      options:
-        - Mașinuță - firmware
-        - Semne - firmware
-        - Aplicația mașinuței
-        - Aplicația semnelor
-        - Protocoale comune
-        - Documentație / infrastructură
-    validations:
-      required: true
-  - type: input
-    id: owner
-    attributes:
-      label: Responsabil principal
-      description: Username GitHub sau numele persoanei care revendică sarcina
-      placeholder: "@username"
-    validations:
-      required: true
   - type: textarea
     id: objective
     attributes:
-      label: Rezultatul dorit
-      description: Descrie rezultatul observabil, nu doar activitatea.
+      label: Ce avem de facut?
+      description: Daca e un bug, scrie ce se intampla si ce te asteptai sa faca.
     validations:
       required: true
   - type: textarea
-    id: scope
+    id: notes
     attributes:
-      label: Componente și fișiere estimate
-      description: Menționează componentele care vor fi atinse și cele care nu trebuie atinse.
-    validations:
-      required: true
-  - type: dropdown
-    id: shared_protocol
-    attributes:
-      label: Schimbă un protocol comun?
-      options:
-        - Nu
-        - Da - necesită coordonare și actualizarea PROTOCOLS.md
-        - Nu sunt sigur - trebuie analizat înainte de implementare
-    validations:
-      required: true
-  - type: textarea
-    id: done
-    attributes:
-      label: Criterii de finalizare
-      placeholder: |
-        - [ ] Cod implementat
-        - [ ] Build relevant reușit
-        - [ ] Test pe hardware sau limitarea documentată
-        - [ ] Documentație actualizată
-    validations:
-      required: true
-  - type: textarea
-    id: dependencies
-    attributes:
-      label: Dependențe și blocaje
-      description: Hardware necesar, decizii de la celălalt colaborator sau alte Issues.
+      label: Mai e ceva de stiut?
+      description: Pasi de test, placa necesara sau protocol afectat, daca e cazul. Alege responsabilul la Assignees.

@@ -75,14 +75,7 @@ Document verified ESP32 pin mapping
 git push -u origin vehicle/fix-autonomous-resume
 ```
 
-Deschide un Pull Request către `main` și completează șablonul. Pull Request-ul trebuie să conțină:
-
-- problema rezolvată;
-- componentele afectate;
-- verificările rulate;
-- testele care necesită hardware;
-- schimbările de protocol;
-- capturi de ecran pentru modificări vizuale.
+Deschide un PR catre `main`. Spune pe scurt ce ai schimbat, de ce si ce ai verificat. Daca mai trebuie test pe placa sau se schimba un protocol, spune asta. Pune o captura daca ajuta la review.
 
 ## Când este obligatorie verificarea celuilalt
 

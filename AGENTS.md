@@ -14,6 +14,15 @@ Acest fișier se aplică întregului repository. Orice asistent trebuie să îl 
 
 Codul este sursa de adevăr pentru comportamentul implementat. Documentele de licență și copiile istorice pot descrie funcții planificate, dar nu dovedesc că acestea există.
 
+## Stil de lucru
+
+- Scrie cum vorbeste echipa. In chat, Issues, PR-uri, comentarii si note noi, romana simpla, de regula fara diacritice. Pastreaza limba si termenii care exista deja in fisier. Nu rescrie pasaje vechi doar pentru stil.
+- Spune direct ce s-a schimbat, de ce si ce ai verificat. O propozitie ajunge cand e o treaba mica. Fara fraze de umplutura, laude, rezumate repetate, rubrici goale sau titluri care spun acelasi lucru ca textul. Ex.: „Build-ul semnului 2 trece. Pe placa n-am testat.”
+- Da fisierelor, folderelor si functiilor nume dupa ce fac. Uita-te la cele vecine inainte sa introduci o conventie. Nu muta fisiere pentru simetrie si nu adauga directoare, dependinte sau straturi pentru un caz ipotetic. Foloseste ce e deja acolo.
+- In cod, comenteaza motivul unei alegeri, o limita hardware sau ceva ce poate fi inteles gresit. Lasa codul sa spuna restul. In review, indica locul, cazul concret si efectul.
+- Un PR rezolva o problema. Titlul spune ce se schimba. In descriere scrie ce nu se vede din diff si ce ai probat. Leaga issue-ul daca exista. Adauga pasi, log sau captura numai daca ajuta la review.
+- Inainte de predare, reciteste textul si diff-ul. Scoate ce se repeta sau nu ajuta la sarcina. Spune „nu stiu” cand nu ai date si nu declara teste pe care nu le-ai rulat. Nu baga greseli intentionate.
+
 ## Baza proiectului
 
 - Baza mașinuței provine din commitul `255eb346d1274252a85744bd054145d6cfc5c5ca`. Sursa semnelor a fost recuperată separat. Citește [baza hardware](docs/HARDWARE_BASELINE.md) pentru proveniență, opțiuni de compilare și limitele verificării față de flash.
@@ -53,13 +62,7 @@ La începutul fiecărei sesiuni de lucru, asistentul trebuie:
 5. să confirme Issue-ul, persoana responsabilă și ramura înainte de modificări;
 6. să evite fișierele pe care celălalt colaborator le modifică într-o ramură activă, dacă nu există coordonare explicită.
 
-La finalul unei sesiuni, asistentul trebuie să lase în Issue sau Pull Request:
-
-- ce a fost terminat;
-- ce fișiere/componente au fost schimbate;
-- ce verificări au trecut sau au eșuat;
-- ce rămâne de făcut;
-- dacă există o dependență sau o decizie necesară din partea celuilalt colaborator.
+La final, lasa in Issue sau PR o nota scurta despre ce s-a schimbat, ce ai verificat si ce mai blocheaza lucrul, daca e cazul.
 
 `PROJECT_MEMORY.md` se actualizează numai cu decizii și fapte stabile care au ajuns sau urmează să ajungă în `main`, nu cu progres temporar de pe o ramură.
 
@@ -131,5 +134,5 @@ Nu transforma memoria într-un jurnal al fiecărui commit. Păstrează doar info
 1. verifică `git diff` și fișierele neintenționate;
 2. rulează verificările relevante;
 3. actualizează documentele dacă s-a schimbat comportamentul;
-4. enumeră clar fișierele și comportamentele schimbate;
+4. spune ce se schimba pentru cel care foloseste sau verifica proiectul;
 5. raportează riscurile și testele care necesită hardware real.
