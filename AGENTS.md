@@ -16,7 +16,7 @@ Codul este sursa de adevăr pentru comportamentul implementat. Documentele de li
 
 ## Baza proiectului
 
-- Baza funcțională finală: commit `255eb346d1274252a85744bd054145d6cfc5c5ca`.
+- Baza mașinuței provine din commitul `255eb346d1274252a85744bd054145d6cfc5c5ca`. Sursa semnelor a fost recuperată separat. Citește [baza hardware](docs/HARDWARE_BASELINE.md) pentru proveniență, opțiuni de compilare și limitele verificării față de flash.
 - Aplicația mașinuței importată în monorepo: commit `aa017c153520ad6310e258ffeb054cfa49a7dc53` din fostul repository imbricat.
 - Nu recupera automat cod din `ANEXE` sau din directoarele istorice de pe D:. Acele copii conțin curățări de comentarii, fișiere corupte și build-uri copiate.
 - Dacă recuperarea istorică este necesară, compară explicit cu Git și documentează de unde provine fiecare fișier.

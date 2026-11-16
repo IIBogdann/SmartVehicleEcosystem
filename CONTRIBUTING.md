@@ -2,13 +2,13 @@
 
 ## Principiul de bază
 
-Fiecare lucrează pe calculatorul său, într-o clonă proprie a repository-ului privat GitHub. Folderul repository-ului nu se partajează pentru editare prin rețeaua locală.
+Fiecare lucrează pe calculatorul său, într-o clonă proprie a repository-ului public de pe GitHub. Folderul repository-ului nu se partajează pentru editare prin rețeaua locală.
 
 Pentru protocolul complet dintre cele două persoane și cele două instanțe ChatGPT/Codex, vezi `docs/COLLABORATION.md`.
 
 ## O singură configurare inițială
 
-1. Repository-ul se publică privat pe GitHub.
+1. Repository-ul este public pe GitHub. Dump-urile hardware și configurațiile personale se păstrează local.
 2. Bogdan o adaugă pe Iuliana drept collaborator.
 3. Ramura stabilă se numește `main`.
 4. Se activează protecția pentru `main`:

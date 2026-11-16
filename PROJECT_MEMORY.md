@@ -1,6 +1,6 @@
 # Memoria locală a proiectului
 
-Ultima actualizare: 12 noiembrie 2026
+Ultima actualizare: 16 noiembrie 2026
 
 ## Scop
 
@@ -34,7 +34,7 @@ Acest fișier păstrează contextul tehnic stabil de care au nevoie Bogdan, Iuli
 - Două dispozitive ESP32-C3 cu e-paper.
 - Control din aplicația semnelor prin BLE.
 - Comunicare între dispozitive și alerte de la mașinuță prin ESP-NOW.
-- Semnul 1 are implementarea ESP-NOW mai avansată; semnul 2 păstrează o arhitectură mai veche și trebuie aliniat.
+- Ambele semne folosesc varianta istorică recuperată de receptor broadcast ESP-NOW pe canalul 6. Vezi [baza hardware](docs/HARDWARE_BASELINE.md) pentru proveniență și limitele comparației cu imaginile citite.
 
 ### Scrierea tagurilor RFID
 
@@ -58,10 +58,9 @@ Acest fișier păstrează contextul tehnic stabil de care au nevoie Bogdan, Iuli
 
 ### Prioritate critică
 
-1. Verificarea completă a compilării după reorganizare, pe mediile reale Arduino/ESP32.
-2. Alinierea ESP-NOW între mașinuță, semnul 1 și semnul 2. În cod apar canalele 6, 1 și 0.
-3. Verificarea și corectarea semnului 2; arhitectura sa diferă de semnul 1, iar `DisplayManager.cpp` conține o metodă care pare nedeclarată în header.
-4. Confirmarea fizică a scrierii RFID. Implementarea poate interpreta lipsa unui ACK valid drept succes.
+1. Verificarea pe banc a alertelor ESP-NOW între mașinuță și ambele semne, inclusiv notificarea BLE și resetarea alertei.
+2. Clarificarea identificatorului fix din notificarea de accident a semnului 2.
+3. Confirmarea fizică a scrierii RFID. Implementarea poate interpreta lipsa unui ACK valid drept succes.
 
 ### Mașinuță
 
@@ -83,7 +82,7 @@ Acest fișier păstrează contextul tehnic stabil de care au nevoie Bogdan, Iuli
 
 ### 2026-11-12 — repository comun curat
 
-- Se folosește GitHub privat, nu un folder de lucru partajat în rețeaua locală.
+- Se folosește GitHub public, cu o clonă locală separată pentru fiecare colaborator.
 - Fiecare persoană are clonă proprie.
 - Se folosesc ramuri scurte per sarcină și Pull Request pentru integrare.
 - Cele două aplicații Android rămân proiecte separate.
@@ -107,7 +106,12 @@ Acest fișier păstrează contextul tehnic stabil de care au nevoie Bogdan, Iuli
 - Ambele proiecte Android nu conțin încă teste reale; taskurile de unit test raportează `NO-SOURCE`.
 - Aplicația semnelor compilează cu avertismente pentru API-uri Android/Bluetooth depreciate; acestea trebuie tratate într-o sarcină separată, nu în commitul de reorganizare.
 - Căile relative ale include-urilor firmware se rezolvă după mutare, iar directoarele sketchurilor păstrează numele fișierelor `.ino` principale.
-- Firmware-ul nu a fost compilat încă, deoarece Arduino CLI/PlatformIO și versiunile plăcilor/bibliotecilor nu sunt încă instalate și fixate pe acest PC.
+- La momentul reorganizării, firmware-ul fusese verificat structural.
+
+### 2026-11-16 — baza firmware a plăcilor
+
+- Au fost citite și verificate imaginile de aplicație de pe cele patru plăci. Hashurile, schemele și toolchain-ul de referință sunt în [docs/HARDWARE_BASELINE.md](docs/HARDWARE_BASELINE.md).
+- Semnele folosesc sursa recuperată din `SmartVehicleEcosystem 1`; ESP32-ul și Arduino-ul mașinuței păstrează cele mai bune surse din Git. Imaginile recompilate diferă de imaginile instalate.
 
 ## Următoarea actualizare a memoriei
 
@@ -120,7 +124,7 @@ La următoarea sesiune nu se începe cu funcții noi. Se pregătește permanent 
 - fixarea versiunilor de plăci, biblioteci și unelte folosite de proiect;
 - comenzi/scripturi simple pentru build-ul fiecărei componente și pentru verificarea completă;
 - reutilizarea cache-urilor pentru a reduce timpul și consumul de resurse/API;
-- verificarea celor două aplicații Android și a celor trei ținte firmware;
+- verificarea celor două aplicații Android și a celor patru ținte firmware;
 - documentarea pașilor astfel încât asistenții să nu repete configurarea la fiecare sesiune;
 - evaluarea unor verificări automate locale și GitHub Actions cu cost minim.
 

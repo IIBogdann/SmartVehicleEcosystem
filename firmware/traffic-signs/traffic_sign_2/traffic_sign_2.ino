@@ -1,75 +1,88 @@
-/**
- * Adaptive Traffic System - Traffic Sign 2
- * 
- * Componentă a proiectului SmartVehicleEcosystem
- * Autor: Bulgariu (Mihăilă) Elena-Iuliana
- * 
- * Hardware: MH ET Live 2.13 inch e-paper display cu XIAO ESP32C3
- * 
- * Actualizări:
- * - Adăugare server BLE pentru comunicare cu aplicația Android
- * - Implementare ESP-Now pentru sincronizare între semne
- */
+#include <Arduino.h>
+#include <SPI.h>
+#include "Config.h"
+#include "TrafficAlertReceiver.h"
 
-// Include modulele necesare
+// Codul a fost simplificat - eliminare comunicare între semne
+
+// Flag care reține dacă semnul este blocat pe mesaj de ACCIDENT
+bool accidentLatched = false;
+
 #include "DisplayManager.h"
 #include "BleManager.h"
-#include "TrafficAlertReceiver.h"
+#include "ESP32_NOW.h"
+#include <WiFi.h>
+#include <esp_wifi.h>
+
+
+// Declarăm extern variabilele care vor fi folosite în clase
+extern DisplayManager epaperDisplay;
+extern BleManager bleManager;
+
+
 
 // Variabile pentru controlul secvenței de afișare
 bool welcomeShown = false;
 unsigned long welcomeStartTime = 0;
 const unsigned long WELCOME_DURATION = 5000; // 5 secunde
-bool syncDisplayShown = false;
-const unsigned long SYNC_CHECK_INTERVAL = 1000; // 1 secundă pentru verificarea sincronizării
-unsigned long lastSyncCheckTime = 0;
-bool syncConfirmed = false;
-
-// Managers pentru diferite componente
-// epaperDisplay este definită în DisplayManager.cpp
-extern DisplayManager epaperDisplay;
 
 // Manager BLE pentru comunicare cu aplicația Android
 BleManager bleManager(&epaperDisplay);
 
-// Manager pentru alertele de trafic de la Elysium RC
-TrafficAlertReceiver trafficAlert(&epaperDisplay);
+// TrafficAlertReceiver pentru recepționarea mesajelor de accident
+TrafficAlertReceiver alertReceiver(&epaperDisplay);
 
-// Adresa MAC a lui Elysium RC - va trebui actualizată cu adresa reală
-uint8_t elysiumMacAddress[] = {0x24, 0x6F, 0x28, 0x00, 0x00, 0x00};
 
 void setup() {
-  // Inițializare display manager - include inițializarea hardware
-  epaperDisplay.init();
-  
-  // Inițializare BLE Manager
+  // Inițializare serial pentru debugging
+  Serial.begin(115200);
+
+  delay(2000);
+  Serial.println("Adaptive Traffic System - Pornire");
+
+  // 1. Eliberare memorie Bluetooth Classic (doar BLE necesar)
+  Serial.println("1. Eliberare memorie Bluetooth Classic");
+  esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
+
+
+  Serial.println("2. Inițializare BLE Manager");
   bleManager.init();
-  
-  // Inițializare TrafficAlert Receiver
-  trafficAlert.init();
-  
-  // Configurare adresă MAC pentru Elysium RC
-  trafficAlert.setElysiumMac(elysiumMacAddress);
-  
-  // Afișarea mesajului de bun venit
+  Serial.println("   BLE inițializat cu succes");
+
+
+
+  Serial.println("Inițializare TrafficAlertReceiver...");
+  alertReceiver.init();
+
+
+  epaperDisplay.init();
+  Serial.println("Display inițializat");
+
   epaperDisplay.welcomeMessage();
-  
+
   // Inițializarea cronometrului pentru tranziție
   welcomeStartTime = millis();
   welcomeShown = true;
+
+  Serial.println("Inițializare completă. Sistem pregătit pentru comenzi BLE și mesaje ESP-NOW broadcast.");
+  Serial.println("Aștept mesaje broadcast de la orice dispozitiv...");
 }
 
+
+
 void loop() {
-  // Proces de actualizare a afișajului după timpul de bun venit
+  // Dacă s-a afișat ecranul de bun venit și au trecut cele 5 secunde
   if (welcomeShown && (millis() - welcomeStartTime > WELCOME_DURATION)) {
-    // Afișăm semnul YIELD (CEDEAZĂ TRECEREA)
-    epaperDisplay.showTrafficSign("YIELD");
+    // Afișăm semnul STOP și punem display-ul în hibernare (inclus în metodă)
+    epaperDisplay.showTrafficSign("STOP");
+
+    // Resetăm flag-ul pentru a nu mai intra în această condiție
     welcomeShown = false;
-    
+
     // Trimitem un status update prin BLE
     bleManager.sendStatusUpdate("Ready to receive commands");
   }
-  
-  // Delay mic pentru a nu supraîncărca procesorul
-  delay(50);
+
+
+  delay(100);
 }

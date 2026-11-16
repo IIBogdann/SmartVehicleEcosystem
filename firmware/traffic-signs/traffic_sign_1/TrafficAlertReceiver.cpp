@@ -1,93 +1,177 @@
 #include "TrafficAlertReceiver.h"
-#include <esp_wifi.h>  // Necesar pentru esp_wifi_set_protocol
+#include "BleManager.h"  // Necesar pentru notificarea BLE
+#include <esp_mac.h>  // Pentru macro-urile MAC2STR și MACSTR
 
 // Inițializare pointer static
 TrafficAlertReceiver* TrafficAlertReceiver::_instance = nullptr;
 
-TrafficAlertReceiver::TrafficAlertReceiver(DisplayManager* displayManager) 
+// Constructor
+TrafficAlertReceiver::TrafficAlertReceiver(DisplayManager* displayManager)
   : _displayManager(displayManager), _isInitialized(false) {
   // Setăm instanța statică pentru a fi accesată din callback-uri
   _instance = this;
-  
-  // Inițializăm adresa MAC a lui Elysium cu zero până când este setată explicit
-  memset(_elysiumMacAddress, 0, 6);
+}
+
+// Callback pentru mesaje broadcast primite de la un peer necunoscut
+void receive_broadcast(const esp_now_recv_info_t *info, const uint8_t *data, int len, void *arg) {
+  // Verificăm dacă este mesaj broadcast (adresa de destinație este FF:FF:FF:FF:FF:FF)
+  if (memcmp(info->des_addr, ESP_NOW.BROADCAST_ADDR, 6) == 0) {
+    Serial.printf("Mesaj broadcast primit de la: " MACSTR " (len=%d)\n", MAC2STR(info->src_addr), len);
+
+    // Încercăm să afișăm mesajul ca text (poate e text)
+    Serial.print("Conținut mesaj (text): ");
+    for (int i = 0; i < len && i < 32; i++) {
+      if (data[i] >= 32 && data[i] <= 126) { // Caractere ASCII imprimabile
+        Serial.print((char)data[i]);
+      } else {
+        Serial.print(".");
+      }
+    }
+    Serial.println();
+
+    // Dacă avem instanța validă a receptor
+    if (TrafficAlertReceiver::_instance) {
+      // Procesăm mesajul
+      TrafficAlertReceiver::_instance->processMessage(data, len);
+    }
+  } else {
+    // Ignorăm mesajele unicast
+    Serial.printf("Mesaj unicast primit de la " MACSTR " - ignorat\n", MAC2STR(info->src_addr));
+  }
 }
 
 void TrafficAlertReceiver::init() {
-  // Nu mai setăm WiFi.mode(WIFI_STA) pentru a nu interfera cu BLE
-  // În schimb, configurăm WiFi pentru coexistență cu BLE
-  esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_LR);
-  
-  // Inițializare ESP-Now
-  if (esp_now_init() != ESP_OK) {
-    // În caz de eroare, se reîncearcă după restart
+  // Configurare WiFi în modul stație și setare canal
+  WiFi.mode(WIFI_STA);
+  WiFi.setChannel(ESPNOW_WIFI_CHANNEL);
+
+  // Așteptăm pornirea WiFi
+  while (!WiFi.STA.started()) {
+    delay(100);
+  }
+
+  Serial.println("Inițializare TrafficAlertReceiver - ESP-NOW Slave");
+  Serial.println("  Mode: STA");
+  Serial.println("  Adresa MAC: " + WiFi.macAddress());
+  Serial.printf("  Canal: %d\n", ESPNOW_WIFI_CHANNEL);
+
+  // Inițializare protocol ESP-NOW
+  if (!ESP_NOW.begin()) {
+    Serial.println("Eroare la inițializarea ESP-NOW!");
+    Serial.println("Repornire în 5 secunde...");
+    delay(5000);
     ESP.restart();
     return;
   }
-  
-  // Înregistrăm callback-ul pentru recepție
-  esp_now_register_recv_cb(onDataReceived);
-  
+
+  // Înregistrăm callback-ul pentru recepția mesajelor broadcast de la dispozitive necunoscute
+  ESP_NOW.onNewPeer(receive_broadcast, NULL);
+
   _isInitialized = true;
+  Serial.println("TrafficAlertReceiver inițializat, în așteptare pentru mesaje broadcast...");
 }
 
-void TrafficAlertReceiver::setElysiumMac(const uint8_t* mac) {
-  memcpy(_elysiumMacAddress, mac, 6);
-  
-  // Creare informație peer pentru Elysium RC
-  esp_now_peer_info_t peerInfo = {};
-  memcpy(peerInfo.peer_addr, _elysiumMacAddress, 6);
-  peerInfo.channel = 1;                 // ACELAȘI canal pe care ai setat stația (1)
-  peerInfo.encrypt = false;
-  
-  // Adăugare peer pentru a permite recepția
-  esp_now_add_peer(&peerInfo);
-}
+// Procesarea mesajelor primite
+void TrafficAlertReceiver::processMessage(const uint8_t* data, int len) {
+  // Dacă nu avem un display manager, nu putem face nimic
+  if (!_displayManager) {
+    Serial.println("Eroare: Display manager neinițializat!");
+    return;
+  }
 
-void TrafficAlertReceiver::onDataReceived(const esp_now_recv_info_t* info, const uint8_t* data, int data_len) {
-  // Verifică dacă avem o instanță validă
-  if (!_instance) return;
-  
-  // Verifică dacă mesajul este de la Elysium
-  if (memcmp(info->src_addr, _instance->_elysiumMacAddress, 6) == 0) {
-    // Verifică dacă avem suficiente date pentru mesajul nostru
-    if (data_len >= sizeof(ElysiumMessage)) {
-      // Conversia datelor primite la structura noastră
-      ElysiumMessage message;
-      memcpy(&message, data, sizeof(ElysiumMessage));
-      
-      // Procesarea mesajului
-      _instance->processMessage(message);
+  // Dacă deja suntem în stare de accident, nu mai actualizăm ecranul
+  // Resetarea se va face doar din aplicația Android
+  if (_accidentActive) {
+    Serial.println("Mesaj de accident ignorat - semnul este deja în stare de accident");
+    return;
+  }
+
+  // Metoda 1: Încercăm să procesam ca TrafficMessage dacă avem dimensiunea potrivită
+  if (len >= sizeof(TrafficMessage)) {
+    TrafficMessage message;
+    memcpy(&message, data, sizeof(TrafficMessage));
+
+    // Afișăm informații despre mesajul primit
+    Serial.printf("Interpretare ca TrafficMessage - Tip: %d, Locație: %s\n", message.eventType, message.location);
+
+    // Ne concentrăm doar pe mesajele de accident (eventType = 1)
+    if (message.eventType == 1) { // ACCIDENT
+      activateAccidentState();
+      return;
     }
+  }
+
+  // Metoda 2: Încercăm să interpretăm în alte moduri
+  // Verificăm dacă conține cuvântul "accident" în orice format
+  bool isAccidentMessage = false;
+
+  // 1. Cautăm cuvântul "accident" în mesaj (poate e text)
+  if (len >= 8) { // Lungimea minimă pentru "accident"
+    for (int i = 0; i <= len - 8; i++) {
+      if ((data[i] == 'a' || data[i] == 'A') &&
+          (data[i+1] == 'c' || data[i+1] == 'C') &&
+          (data[i+2] == 'c' || data[i+2] == 'C') &&
+          (data[i+3] == 'i' || data[i+3] == 'I') &&
+          (data[i+4] == 'd' || data[i+4] == 'D') &&
+          (data[i+5] == 'e' || data[i+5] == 'E') &&
+          (data[i+6] == 'n' || data[i+6] == 'N') &&
+          (data[i+7] == 't' || data[i+7] == 'T')) {
+        isAccidentMessage = true;
+        break;
+      }
+    }
+  }
+
+  // 2. Cautăm byte-ul 0x01 în primii bytes (în cazul în care este codul pentru accident)
+  if (!isAccidentMessage && len >= 1) {
+    if (data[0] == 0x01) {
+      isAccidentMessage = true;
+      Serial.println("Detectat cod posibil pentru accident (0x01)");
+    }
+  }
+
+  // Dacă am detectat un mesaj de accident în orice format
+  if (isAccidentMessage) {
+    activateAccidentState();
+    return;
+  }
+
+  // Dacă nu am detectat nimic, ignorăm mesajul
+  Serial.println("Mesaj ignorat: format necunoscut");
+}
+
+// Activare stare accident - afișare semn și notificare BLE
+void TrafficAlertReceiver::activateAccidentState() {
+  // Setăm flag-ul că suntem în stare de accident
+  _accidentActive = true;
+
+  // Afișăm semnul de accident
+  Serial.println("ACCIDENT detectat! Actualizez display-ul...");
+  if (_displayManager) {
+    _displayManager->showAccidentAlert();
+
+    // Trimitem notificare către aplicația Android
+    extern BleManager bleManager;
+    bleManager.sendStatusUpdate("SignID=1;Event=ACCIDENT");
+
+    Serial.println("Notificare trimisă către aplicația Android");
+    Serial.println("Semn blocat în starea ACCIDENT. Resetare posibilă doar din aplicația Android.");
+  } else {
+    Serial.println("Eroare: Display manager neinițializat pentru afișarea semnului de accident!");
   }
 }
 
-void TrafficAlertReceiver::processMessage(const ElysiumMessage& message) {
-  // Dacă nu avem un display manager, nu putem face nimic
-  if (!_displayManager) return;
-  
-  // În funcție de tipul evenimentului, actualizăm afișajul
-  switch (message.eventType) {
-    case EVENT_ACCIDENT:
-      // Afișează semn de accident
-      _displayManager->showTrafficSign("ACCIDENT");
-      break;
-      
-    case EVENT_OBSTACLE:
-      // Afișează semn de obstacol
-      _displayManager->showTrafficSign("OBSTACOL");
-      break;
-      
-    case EVENT_EMERGENCY:
-      // Afișează semn de urgență
-      _displayManager->showTrafficSign("URGENTA");
-      break;
-      
-    case EVENT_NORMAL:
-    default:
-      // Afișează semnul normal pentru acest semn de trafic
-      // (pentru semnul 1, presupunem că este STOP)
-      _displayManager->showTrafficSign("STOP");
-      break;
+// Resetare stare accident - folosită de handler-ul BLE pentru comanda din aplicație
+void TrafficAlertReceiver::resetAccidentState() {
+  if (_accidentActive) {
+    _accidentActive = false;
+    Serial.println("Resetare stare accident - revenire la semn normal");
+
+    // Afișăm semn normal (gol sau altă stare implicită)
+    _displayManager->showTrafficSign("STOP"); // Sau alt semn implicit
+
+    Serial.println("Semn resetat cu succes");
+  } else {
+    Serial.println("Resetare ignorată - nu suntem în stare de accident");
   }
 }

@@ -1,26 +1,9 @@
-// DisplayManager.cpp — implementarea clasei + obiectul global epaperDisplay
-// ======================================================================
-//  • setRotation(3)  → imagine rotită 180° (landscape flipped)
-//  • Bloc de „PARAMETRI CUSTOMIZABILI” extins ⇒ tot ce poate fi ajustat
-//  • Semnul STOP desenat ca OCTOGON centrat + text „STOP” centrat în interior
-// ----------------------------------------------------------------------
-//  PARAMETRI CUSTOMIZABILI
-//  -----------------------
-//    CIRCLE_MARGIN        – distanţa (px) de la cerc la marginea ecranului
-//    CIRCLE_BORDER_GAP    – grosimea inelului negru (diferenţa dintre cele două cercuri)
-//    SPEED_TEXT_SIZE      – mărimea fontului pentru numărul limită
-//    SPEED_TEXT_V_ADJ     – reglaj fin vertical al numărului (px, + în jos)
-//    KMH_OFFSET           – distanţa verticală sub cerc până la „km/h” (px)
-//    YIELD_TRIANGLE_SIZE  – dimensiunea triunghiului semnului YIELD (px)
-//    STOP_OCT_RADIUS      – „raza” (distanta centru → vârf) pentru octogonul STOP (px)
-//    STOP_TEXT_SIZE       – mărimea textului „STOP” (font bitmap 1‑8)
-//    STOP_TEXT_V_ADJ      – reglaj fin vertical pt. „STOP” (px)
-// ----------------------------------------------------------------------
+// DisplayManager.cpp - implementarea clasei + obiectul global epaperDisplay
+// Optimizat pentru dimensiune cod - 2025
 
 #include "DisplayManager.h"
 #include <SPI.h>
 #include <Arduino.h>
-#include <math.h>
 
 #ifndef LED_BUILTIN
 #define LED_BUILTIN 8
@@ -36,7 +19,7 @@ constexpr int      KMH_OFFSET           = 18;   // px
 constexpr int16_t  YIELD_TRIANGLE_SIZE  = 45;   // px
 constexpr int16_t  STOP_OCT_RADIUS      = 48;   // px (ajustează după ecran)
 constexpr uint8_t  STOP_TEXT_SIZE       = 3;    // 1‑8
-constexpr int      STOP_TEXT_V_ADJ      = 0;    // px (fine‑tune)
+constexpr int      STOP_TEXT_V_ADJ      = 0;    // px
 constexpr int     YIELD_BORDER_GAP    = 4;   // grosimea chenarului
 constexpr uint8_t YIELD_TEXT_SIZE     = 1;   // mărime text sub semn
 
@@ -57,44 +40,32 @@ DisplayManager::DisplayManager()
 // INITIALIZARE
 // ----------------------------------------------------------------------
 void DisplayManager::init() {
-  Serial.begin(115200);
-  while (!Serial) { delay(10); }
-  Serial.println(F("[Display] Pornire initializare"));
-
   initPins();     clipire(1);
   resetDisplay();
   initSPI();      clipire(1);
   initDisplay();  clipire(2);
-
-  Serial.println(F("[Display] Iniţializare finalizată!"));
 }
 
 void DisplayManager::initPins() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(PIN_RST,     OUTPUT);
-  Serial.println(F("[Display] Pini configuraţi"));
 }
 
 void DisplayManager::resetDisplay() {
-  Serial.println(F("[Display] Reset hardware…"));
   delay(500);
   pinMode(PIN_BUSY, INPUT_PULLUP);
   digitalWrite(PIN_RST, LOW);  delay(10);
   digitalWrite(PIN_RST, HIGH); delay(10);
-  Serial.println(F("[Display] Reset hardware complet"));
 }
 
 void DisplayManager::initSPI() {
-  Serial.println(F("[Display] Iniţializare SPI…"));
   SPI.begin(PIN_SCK, PIN_MISO, PIN_MOSI, PIN_CS);
-  SPI.setFrequency(10'000'000);
+  SPI.setFrequency(10000000);
 }
 
 void DisplayManager::initDisplay() {
-  Serial.println(F("[Display] Init driver…"));
   display.init(115200);
   display.setRotation(3);   // 3 = landscape flipped (180°)
-  Serial.println(F("[Display] Driver gata (rotatie 180°)"));
 }
 
 // ----------------------------------------------------------------------
@@ -127,7 +98,15 @@ void DisplayManager::fullRefresh() {
 
 void DisplayManager::clear()       { fullRefresh(); }
 void DisplayManager::clearScreen() { clear(); }
-void DisplayManager::update()      {}
+void DisplayManager::update() {
+  // Implementare corectă a metodei update() pentru a actualiza display-ul
+  // Folosește firstPage()/nextPage() pattern pentru refresh fără ghosting
+  // display.display(true) ar fi o alternativă, dar cu firstPage/nextPage evităm ghostingul
+  display.firstPage();
+  do {
+    // Conținutul este deja desenat prin alte metode
+  } while (display.nextPage());
+}
 void DisplayManager::hibernate()   { display.hibernate(); }
 
 // ----------------------------------------------------------------------
@@ -262,6 +241,7 @@ void DisplayManager::showYieldSign() {
 // SEMN LIMITĂ VITEZĂ
 // ----------------------------------------------------------------------
 void DisplayManager::showSpeedLimitSign(int limit) {
+/* existing content unchanged */
   char buf[8]; sprintf(buf, "%d", limit);
 
   display.firstPage();
@@ -291,19 +271,41 @@ void DisplayManager::showSpeedLimitSign(int limit) {
   } while (display.nextPage());
 }
 
-// ----------------------------------------------------------------------
-// PATTERN CHECKERBOARD — pentru calibrare/ghosting
-// ----------------------------------------------------------------------
-void DisplayManager::drawCheckerboardPattern() {
-  const int sq = 16;
+
+void DisplayManager::showAccidentAlert()
+{
+  constexpr int16_t OUT_RADIUS  = 35;   // mărimea triunghiului exterior
+  constexpr int16_t BORDER_GAP  = 6;    // spaţiu dintre chenarul exterior şi interior
+  constexpr int16_t IN_RADIUS   = OUT_RADIUS - BORDER_GAP;
+
   display.firstPage();
   do {
-    for (int y = 0; y < display.height(); y += sq) {
-      for (int x = 0; x < display.width(); x += sq) {
-        if (((x/sq) + (y/sq)) % 2 == 0)
-          display.fillRect(x, y, sq, sq, GxEPD_BLACK);
-      }
-    }
+    display.fillScreen(GxEPD_WHITE);
+    display.setTextColor(GxEPD_BLACK);
+
+    // ridicăm totul cu 8 px
+    const int16_t cx = display.width()  / 2;
+    const int16_t cy = display.height() / 2 - 14;  // (-6 – 8)
+
+    /* ───── triunghi exterior ───── */
+    display.drawTriangle(cx,              cy - OUT_RADIUS,
+                         cx - OUT_RADIUS, cy + OUT_RADIUS,
+                         cx + OUT_RADIUS, cy + OUT_RADIUS,
+                         GxEPD_BLACK);
+
+    /* ───── triunghi interior (chenar) ───── */
+    display.drawTriangle(cx,             cy - IN_RADIUS,
+                         cx - IN_RADIUS, cy + IN_RADIUS,
+                         cx + IN_RADIUS, cy + IN_RADIUS,
+                         GxEPD_BLACK);
+
+    /* ───── semnul exclamării ───── */
+    display.fillRect(cx - 2, cy - 12, 4, 18, GxEPD_BLACK);
+    display.fillCircle(cx,   cy + 10, 3,  GxEPD_BLACK);
+
+    /* ───── text sub triunghi ───── */
+    display.setTextSize(2);                        // mai mare ≈ „bold”
+    drawCenteredText("ATENTIE,ACCIDENT!", cy + OUT_RADIUS + 12, 2);
+
   } while (display.nextPage());
-  Serial.println(F("[Display] Pattern damier afişat"));
 }
