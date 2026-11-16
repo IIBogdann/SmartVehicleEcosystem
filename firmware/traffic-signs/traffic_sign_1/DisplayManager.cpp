@@ -19,7 +19,7 @@ constexpr int      KMH_OFFSET           = 18;   // px
 constexpr int16_t  YIELD_TRIANGLE_SIZE  = 45;   // px
 constexpr int16_t  STOP_OCT_RADIUS      = 48;   // px (ajustează după ecran)
 constexpr uint8_t  STOP_TEXT_SIZE       = 3;    // 1‑8
-constexpr int      STOP_TEXT_V_ADJ      = 0;    // px (fine‑tune)
+constexpr int      STOP_TEXT_V_ADJ      = 0;    // px
 constexpr int     YIELD_BORDER_GAP    = 4;   // grosimea chenarului
 constexpr uint8_t YIELD_TEXT_SIZE     = 1;   // mărime text sub semn
 
@@ -241,6 +241,7 @@ void DisplayManager::showYieldSign() {
 // SEMN LIMITĂ VITEZĂ
 // ----------------------------------------------------------------------
 void DisplayManager::showSpeedLimitSign(int limit) {
+/* existing content unchanged */
   char buf[8]; sprintf(buf, "%d", limit);
 
   display.firstPage();
@@ -266,6 +267,45 @@ void DisplayManager::showSpeedLimitSign(int limit) {
     // "km/h" sub cerc
     display.setTextSize(1);
     drawCenteredText("km/h", cy + r + KMH_OFFSET, 1);
+
+  } while (display.nextPage());
+}
+
+
+void DisplayManager::showAccidentAlert()
+{
+  constexpr int16_t OUT_RADIUS  = 35;   // mărimea triunghiului exterior
+  constexpr int16_t BORDER_GAP  = 6;    // spaţiu dintre chenarul exterior şi interior
+  constexpr int16_t IN_RADIUS   = OUT_RADIUS - BORDER_GAP;
+
+  display.firstPage();
+  do {
+    display.fillScreen(GxEPD_WHITE);
+    display.setTextColor(GxEPD_BLACK);
+
+    // ridicăm totul cu 8 px
+    const int16_t cx = display.width()  / 2;
+    const int16_t cy = display.height() / 2 - 14;  // (-6 – 8)
+
+    /* ───── triunghi exterior ───── */
+    display.drawTriangle(cx,              cy - OUT_RADIUS,
+                         cx - OUT_RADIUS, cy + OUT_RADIUS,
+                         cx + OUT_RADIUS, cy + OUT_RADIUS,
+                         GxEPD_BLACK);
+
+    /* ───── triunghi interior (chenar) ───── */
+    display.drawTriangle(cx,             cy - IN_RADIUS,
+                         cx - IN_RADIUS, cy + IN_RADIUS,
+                         cx + IN_RADIUS, cy + IN_RADIUS,
+                         GxEPD_BLACK);
+
+    /* ───── semnul exclamării ───── */
+    display.fillRect(cx - 2, cy - 12, 4, 18, GxEPD_BLACK);
+    display.fillCircle(cx,   cy + 10, 3,  GxEPD_BLACK);
+
+    /* ───── text sub triunghi ───── */
+    display.setTextSize(2);                        // mai mare ≈ „bold”
+    drawCenteredText("ATENTIE,ACCIDENT!", cy + OUT_RADIUS + 12, 2);
 
   } while (display.nextPage());
 }

@@ -11,10 +11,9 @@ Fiecare semn conține managerul display-ului e-paper, serverul BLE și logica de
 
 ## Stare cunoscută
 
-- Semnul 1 are implementarea ESP-NOW mai avansată și folosește explicit canalul 6.
-- Semnul 2 păstrează o implementare mai veche și trebuie aliniat cu semnul 1 și mașinuța.
-- Fișierele `Config.h` conțin încă valoarea 1 pentru canal; nu considera această valoare contract stabil.
-- Compilarea versiunii curente trebuie verificată înainte de modificări funcționale mari.
+- Ambele surse au fost recuperate din aceeași variantă istorică. Numele BLE și identificatorii diferă în `Config.h`.
+- Receptorul comun ascultă pe canalul 6. Schemele citite sunt `no_ota` pentru semnul 1 și `noota_ffat` pentru semnul 2.
+- [Baza hardware](../../docs/HARDWARE_BASELINE.md) include proveniența, hashurile imaginilor de pe plăci și comenzile de compilare.
 
 Dependențe observate în sursă:
 

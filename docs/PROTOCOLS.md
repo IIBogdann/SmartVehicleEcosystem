@@ -1,6 +1,6 @@
 # Protocoale și contracte între componente
 
-Acest document descrie comportamentul existent la reorganizarea din 12 noiembrie 2026. Orice schimbare trebuie implementată în toate capetele afectate, revizuită de ambii colaboratori și notată aici.
+Acest document descrie sursele de referință din repository. Proveniența și limitele verificării față de plăci sunt în [baza hardware](HARDWARE_BASELINE.md). Schimbările de protocol se verifică la ambele capete și se revizuiesc de ambii colaboratori.
 
 ## 1. Aplicația semnelor ↔ semne: BLE
 
@@ -16,6 +16,9 @@ Comenzi text cunoscute:
 - `YIELD`
 - `SPEED_LIMIT_30`
 - `SPEED_LIMIT_50`
+- `RESET_ACCIDENT` sau `RESET` — în firmware-ul recuperat, revine la `STOP` când o alertă de accident este activă.
+
+Semnele pornesc cu nume BLE distincte (`Traffic Sign 1` și `Traffic Sign 2`) și afișează `STOP` după ecranul de bun venit. Notificarea de accident folosește valoarea fixă `SignID=1` la ambele semne. Identitatea dispozitivului nu se deduce din acel câmp.
 
 Aplicația poate menține mai multe conexiuni, indexate după adresa dispozitivului. Codul actual trebuie îmbunătățit astfel încât starea „conectat” să fie publicată numai după descoperirea cu succes a serviciilor GATT.
 
@@ -106,7 +109,7 @@ Citirea comportamentală folosește în primul rând primul caracter. Orice exti
 
 ## 5. Mașinuță ↔ semne: ESP-NOW
 
-Structura binară folosită de mașinuță și de implementarea avansată a semnului 1 este împachetată:
+Structura binară transmisă de mașinuță este împachetată:
 
 ```cpp
 struct traffic_message {
@@ -122,7 +125,9 @@ Semnificație:
 - `signType` — de exemplu `ACCIDENT`, `STOP` sau `OBSTACLE`;
 - `priority = 1` — mesaj urgent.
 
-Canalul folosit de mașinuță și explicit de semnul 1 este `6`. Unele fișiere de configurare ale semnelor conțin încă `1`, iar semnul 2 folosește o implementare mai veche. Până la aliniere, canalul și compatibilitatea semnului 2 nu trebuie considerate confirmate.
+Mașinuța transmite `ACCIDENT` prin broadcast pe canalul `6`. Ambele semne ascultă pe canalul `6`, valoare definită în receptorul lor. Ele acceptă alerte broadcast și pot interpreta o structură istorică de 33 de octeți (`eventType` și `location[32]`). Cadrul de 22 de octeți al mașinuței este recunoscut prin căutarea textului `accident` în payload. Astfel, compatibilitatea reiese din citirea surselor și necesită probă pe hardware.
+
+Valoarea `1` din `Config.h` al semnelor nu controlează inițializarea receptorului recuperat. Receptorul mai acceptă și detectarea tipului istoric `0x01`. Aceste căi sunt comportamentul de referință recuperat, nu un nou contract pentru extinderi.
 
 ## Regula de schimbare
 

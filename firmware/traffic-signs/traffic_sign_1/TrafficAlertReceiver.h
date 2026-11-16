@@ -1,43 +1,49 @@
-#ifndef TRAFFIC_ALERT_RECEIVER_H
-#define TRAFFIC_ALERT_RECEIVER_H
+#ifndef TrafficAlertReceiver_h
+#define TrafficAlertReceiver_h
 
 #include <Arduino.h>
 #include <esp_now.h>
 #include <WiFi.h>
+#include "ESP32_NOW.h"  // Pentru a folosi implementarea ESP_NOW
 #include "DisplayManager.h"
+#include <vector>
 
-// Tipuri de evenimente ce pot fi primite de la Elysium RC
-enum ElysiumEventType {
-  EVENT_NORMAL = 0,
-  EVENT_ACCIDENT = 1,
-  EVENT_OBSTACLE = 2,
-  EVENT_EMERGENCY = 3
-};
+// Definiție canal ESP-NOW
+#define ESPNOW_WIFI_CHANNEL 6
 
 // Structura mesajului primit
 typedef struct {
-  uint8_t eventType;     // Tipul evenimentului (din enum ElysiumEventType)
-  uint8_t severity;      // Severitatea (1-10)
+  uint8_t eventType;     // Tipul evenimentului (1 = ACCIDENT)
   char location[32];     // Locația evenimentului
-} ElysiumMessage;
+} TrafficMessage;
 
 class TrafficAlertReceiver {
 public:
+  // Constructor care primește display manager-ul
   TrafficAlertReceiver(DisplayManager* displayManager);
+
+  // Inițializare modul ESP-NOW și înregistrare callback-uri
   void init();
-  void setElysiumMac(const uint8_t* mac);
-  void processMessage(const ElysiumMessage& message);
+
+  // Procesare mesaje primite
+  void processMessage(const uint8_t* data, int len);
+
+  // Resetare stare accident (chemată din handler-ul BLE)
+  void resetAccidentState();
+
+  // Activare stare accident - afișare semn și notificare BLE
+  void activateAccidentState();
+
+  // Verificare dacă suntem în stare de accident
+  bool isInAccidentState() { return _accidentActive; }
+
+  // Pointer static pentru a accesa instanța din callback-uri
+  static TrafficAlertReceiver* _instance;
 
 private:
   DisplayManager* _displayManager;
-  uint8_t _elysiumMacAddress[6];
   bool _isInitialized;
-
-  // Callback-uri statice pentru ESP-Now
-  static void onDataReceived(const esp_now_recv_info_t* info, const uint8_t* data, int data_len);
-  
-  // Pointer static pentru a accesa instanța din callback-uri
-  static TrafficAlertReceiver* _instance;
+  bool _accidentActive = false; // Flag pentru a ține minte dacă semaforul este în stare de accident
 };
 
-#endif // TRAFFIC_ALERT_RECEIVER_H
+#endif // TrafficAlertReceiver_h

@@ -19,7 +19,7 @@ Fișierul `ESP32/ElysiumRC/Modules.cpp` include implementările modulelor în sk
 
 ## Verificare
 
-Versiunile exacte ale plăcii și bibliotecilor nu sunt încă fixate în repository. La prima compilare reușită pe hardware, acestea trebuie adăugate aici și în `PROJECT_MEMORY.md`.
+[Baza hardware](../../docs/HARDWARE_BASELINE.md) documentează opțiunile de flash citite, versiunile mediului de referință și hashurile imaginilor instalate.
 
 Dependențe observate în sursă:
 

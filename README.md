@@ -11,6 +11,7 @@ Repository-ul este organizat pentru lucru în paralel de pe calculatoare diferit
 - `mobile/vehicle-app/` — aplicația Android pentru controlul și monitorizarea mașinuței.
 - `mobile/traffic-signs-app/` — aplicația Android pentru administrarea semnelor și scrierea tagurilor prin cititorul montat momentan pe mașinuță.
 - `docs/PROTOCOLS.md` — contractele de comunicare dintre componente.
+- [Baza hardware](docs/HARDWARE_BASELINE.md) — proveniența firmware-ului de pe cele patru plăci și comenzile de compilare.
 - `PROJECT_MEMORY.md` — starea tehnică, deciziile și problemele cunoscute.
 - `CONTRIBUTING.md` — fluxul Git/GitHub folosit de echipă.
 - `docs/COLLABORATION.md` — protocolul live dintre cei doi colaboratori și asistenții lor locali.
