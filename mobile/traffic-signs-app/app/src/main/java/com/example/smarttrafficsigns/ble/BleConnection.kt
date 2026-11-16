@@ -27,7 +27,6 @@ class BleConnection(private val context: Context) : DeviceConnection {
         val STATUS_CHARACTERISTIC_UUID = UUID.fromString("8f0e0d0c-0b0a-0908-0706-050403020102")
     }
 
-    // Stările posibile ale conexiunii BLE
     enum class ConnectionState {
         DISCONNECTED,
         CONNECTING,
@@ -36,26 +35,22 @@ class BleConnection(private val context: Context) : DeviceConnection {
         ERROR
     }
 
-    // Flow-uri publice pentru observarea stării și a mesajelor
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     override val connectionState: StateFlow<ConnectionState> = _connectionState
 
     private val _statusMessage = MutableStateFlow<String?>(null)
     override val statusMessage: StateFlow<String?> = _statusMessage
 
-    // Referințe interne pentru conexiune
     private var bluetoothGatt: BluetoothGatt? = null
     private var commandCharacteristic: BluetoothGattCharacteristic? = null
     private var statusCharacteristic: BluetoothGattCharacteristic? = null
 
-    // Callback pentru evenimentele GATT
     private val gattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
                     Log.i(TAG, "Conectat la dispozitivul GATT: ${gatt.device.address}")
                     _connectionState.value = ConnectionState.CONNECTED
-                    // După conectare, descoperim serviciile
                     gatt.discoverServices()
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
@@ -81,7 +76,6 @@ class BleConnection(private val context: Context) : DeviceConnection {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Servicii GATT descoperite")
                 
-                // Căutăm serviciul și caracteristica pentru comenzi
                 val service = gatt.getService(SERVICE_UUID)
                 if (service != null) {
                     commandCharacteristic = service.getCharacteristic(COMMAND_CHARACTERISTIC_UUID)
@@ -150,7 +144,6 @@ class BleConnection(private val context: Context) : DeviceConnection {
         // Deconectare de la orice conexiune existentă
         bluetoothGatt?.close()
         
-        // Inițiere conexiune nouă
         bluetoothGatt = device.connectGatt(context, false, gattCallback)
     }
 
@@ -180,10 +173,8 @@ class BleConnection(private val context: Context) : DeviceConnection {
             return false
         }
         
-        // Setăm valoarea comenzii
         characteristic.setValue(command.toByteArray(Charsets.UTF_8))
         
-        // Trimitem comanda
         val success = gatt.writeCharacteristic(characteristic)
         
         if (success) {

@@ -22,17 +22,13 @@ BleManager::BleManager(DisplayManager* displayManager) :
 }
 
 void BleManager::init() {
-    // Inițializare BLE
     BLEDevice::init(DEVICE_NAME);
 
-    // Creare server BLE
     _pServer = BLEDevice::createServer();
     _pServer->setCallbacks(this);
 
-    // Creare serviciu BLE
     _pService = _pServer->createService(TRAFFIC_SIGN_SERVICE_UUID);
 
-    // Creare caracteristici BLE
     _pSignCharacteristic = _pService->createCharacteristic(
         SIGN_CHARACTERISTIC_UUID,
         BLECharacteristic::PROPERTY_WRITE
@@ -45,10 +41,8 @@ void BleManager::init() {
     );
     _pStatusCharacteristic->addDescriptor(new BLE2902());
 
-    // Start serviciu
     _pService->start();
 
-    // Start advertising
     BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(TRAFFIC_SIGN_SERVICE_UUID);
     pAdvertising->setScanResponse(true);
@@ -87,7 +81,6 @@ void BleManager::onDisconnect(BLEServer* pServer) {
 
 void BleManager::onWrite(BLECharacteristic* characteristic) {
     if (characteristic->getUUID().toString() == SIGN_CHARACTERISTIC_UUID) {
-        // Obținem valoarea caracteristicii ca un șir de caractere
         String command = characteristic->getValue().c_str(); // Conversia la const char* și apoi la String Arduino
 
         Serial.print("Comandă primită: ");
@@ -95,7 +88,6 @@ void BleManager::onWrite(BLECharacteristic* characteristic) {
 
         // Verificare pentru comanda specială de resetare accident
         if (command == "RESET_ACCIDENT" || command == "RESET") {
-            // Acces la instanta TrafficAlertReceiver prin pointerul static _instance
             if (TrafficAlertReceiver::_instance) {
                 TrafficAlertReceiver::_instance->resetAccidentState();
 
@@ -107,12 +99,9 @@ void BleManager::onWrite(BLECharacteristic* characteristic) {
             return;
         }
 
-        // Procesează comanda normală pentru afișarea semnului
         if (_displayManager) {
-            // Afișarea semnului corespunzător
             _displayManager->showTrafficSign(command.c_str());
 
-            // Trimitere confirmare că semnul a fost afișat
             sendStatusUpdate("Sign updated: " + command);
         } else {
             Serial.println("Error: Display Manager not initialized");

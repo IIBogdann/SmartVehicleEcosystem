@@ -6,33 +6,25 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-// Include module componente
-// Core
 #include "../core/BluetoothManager.h"
 #include "../core/TaskManager.h"
 #include "../core/AutonomousTask.h"
 // Include implementation to ensure compilation in Arduino build system
 #include "../core/AutonomousTask.cpp"
-// Actuators
 #include "../motion-control/DCMotor.h"
 #include "../motion-control/ServoMotor.h"
-// Sensors
 #include "../sensors/UltrasonicSensors.h"
 #include "../sensors/RFIDManager.h"
-// Feedback
 #include "../feedback/BuzzerManager.h"
 #include "../alerts/AccidentDetector.h"
 
 
-// ******************* GLOBAL **************************************
 Servo servo;
 String mesaj;
 BluetoothManager btManager;
 const int RXD1 = 16;
 const int TXD1 = 17;
-// *******************************************************************
 
-// ------- RFID sign handling ------------------
 // STOP_EPC păstrat doar pentru referinţă, nu mai este folosit direct
 const char* STOP_EPC = "E200470D88D068218CD6010E";
 volatile bool stopMode = false;
@@ -45,14 +37,11 @@ const int NORMAL_MOTOR_SPEED = 190;
 // YIELD handling
 const int  YIELD_SPEED = 100;           // duty pentru cedare (0-255)  // <= va deveni MOTOR_SPEED când yieldMode activ
 volatile bool yieldMode  = false;         // true cât timp tag YIELD este prezent
-// ---------------------------------------------
 const unsigned long STOP_COOLDOWN_MS = 10000; // 10s fara semn pentru reset
 static unsigned long lastStopSeen = 0;
 
-// --- RFID write mode state ---
 volatile bool rfidWriteMode = false;
 static String writePayload = "";
-// --- date pentru scriere tag ---
 static String lastSignCode = "";   // "S", "Y", "30", "50" etc.
 static int    currentY = 0;
 static bool   hasY = false;
@@ -60,7 +49,6 @@ static bool   hasY = false;
 // timp până la care suprimăm print-uri diagnostice
 volatile unsigned long muteConsoleUntil = 0;
 
-// ------------------- helper -------------------
 char getSignCode(const String& epc){
   if(epc.length() < 2) return 0;
   String byteStr = epc.substring(0,2);
@@ -73,20 +61,16 @@ char getSignCode(const String& epc){
 
 void setup() {
 
-  // ************************* SERIAL***************************************
   Serial.begin(115200);
   delay(500);
   Serial1.begin(9600, SERIAL_8N1, RXD1, TXD1);
   delay(1000);
-  //**************************************************************************
 
 
 
-  //========================== START ==========================================
   Serial.println("\n*** Elysium RC is starting... ***");
   Serial.println("*** Initializare componente... ***");
   delay(1000);
-  //===========================================================================
 
 
   btManager.begin();
@@ -98,9 +82,7 @@ void setup() {
   RFIDManager_init();
 
 
-  //################################# TEST AND DIAGNOSE #######################################
 
-  //-------------------------- DC MOTOR -------------------------------------------
   Serial.println("\nDC Motor test... ");
   DCMotor(true, false);
   delay(1000);
@@ -112,7 +94,6 @@ void setup() {
   delay(1000);
 
   
-  //---------------------- SERVO -------------------------------------------------
   Serial.println("\nServomotor test..."); delay(1000);
   Serial.println("1. Test stânga maxim...");
   ServoMotor(LEFT); delay(1000);
@@ -124,7 +105,6 @@ void setup() {
   Tasks_init();
   AutonomousTask_init();
   
-  //---------------------- RFID -------------------------------------------------
   Serial.println("\nRFID Reader test..."); delay(1000);
   Serial.println("1. Așteptare card RFID...");
   
@@ -154,7 +134,6 @@ void loop() {
     Serial.print("Comandă primită: ");
     Serial.println(command);
 
-  // --- WRITE_TAG (poate include \"type\") ---
   if(command.indexOf("WRITE_TAG") >= 0){
     // Dacă mesajul este JSON şi conţine "type":"..." actualizăm lastSignCode
     int pos = command.indexOf("\"type\":\"");
@@ -190,7 +169,6 @@ void loop() {
     }
   }
 
-  // --- Comenzi semn ---
   if(command == "STOP"){
     lastSignCode = "S";
   } else if(command == "YIELD"){
@@ -200,7 +178,6 @@ void loop() {
   } else if(command == "SPEED_LIMIT_50" || command == "50"){
     lastSignCode = "50";
   }
-  // === Control motor ===
     // Dacă primim comandă directă de control, ieşim imediat din modul autonom
     if(command=="F"||command=="B"||command=="N"||command=="L"||command=="R"||command=="C"){
       currentMode = MODE_MANUAL;
@@ -217,7 +194,6 @@ void loop() {
     } else if (command == "N") {
       DCMotor(false, false);               // neutral motor, direcţia rămâne nemodificată
 
-    // === Control direcţie ===
     } else if (command == "L") {
       ServoMotor(LEFT);                    // viraj stânga
     } else if (command == "R") {
@@ -225,7 +201,6 @@ void loop() {
     } else if (command == "C") {
       ServoMotor(CENTER);                  // centru direcţie, motorul rămâne nemodificat
 
-    // === Stop total ===
     } else if (command == "S") {
       DCMotor(false, false);
       ServoMotor(CENTER);
@@ -233,7 +208,6 @@ void loop() {
   }
 
   readSensorsSequentially();
-  // Actualizează logica de detectare accident
   AccidentDetector_update();
 
   String sensorData = String(distanceFront) + "," + 
@@ -244,7 +218,6 @@ void loop() {
   btManager.sendData("$SEN," + sensorData);
 
 
-  // === Date de orientare de la Arduino UNO ===
   if(Serial1.available()){
     String line = Serial1.readStringUntil('\n');
     line.trim();
@@ -260,10 +233,8 @@ void loop() {
 
   ///Serial.println(mesaj);
   
-  // Actualizare stare modul RFID
   RFIDManager_update();
   
-  // === Gestionare evenimente RFID (detectare / îndepărtare) ===
   static bool cardReported = false;
 
   bool present = isCardPresent();
@@ -311,7 +282,6 @@ void loop() {
     cardReported = false;
   }
 
-  // === Execută scriere EPC dacă este în writeMode ===
   if(rfidWriteMode){
     uint8_t bytes[12] = {0};
     uint8_t Lstr = min((uint8_t)writePayload.length(), (uint8_t)12);

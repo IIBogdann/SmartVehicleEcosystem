@@ -71,7 +71,6 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
-        // Inițializare status button
         statusButton = findViewById(R.id.buttonStatus)
         distanceFrontText = findViewById(R.id.distanceFrontText)
         distanceBackText = findViewById(R.id.distanceBackText)
@@ -84,11 +83,9 @@ class MainActivity : AppCompatActivity() {
         zText = findViewById(R.id.zText)
         voltageText = findViewById(R.id.voltageText)
 
-        // Inițializare consolă
         consoleText = findViewById(R.id.consoleText)
         consoleScroll = findViewById(R.id.consoleScroll)
 
-        // Inițializare butoane
         buttonForward = findViewById(R.id.buttonForward)
         buttonBackward = findViewById(R.id.buttonBackward)
         buttonLeft = findViewById(R.id.buttonLeft)
@@ -103,19 +100,16 @@ class MainActivity : AppCompatActivity() {
         setupControlButtons()
         setupModeButton()
 
-        // Verifică dacă Bluetooth-ul este suportat
         if (!bluetoothManager.isBluetoothSupported()) {
             updateStatus("Bluetooth nu este suportat")
             return
         }
 
-        // Verifică dacă Bluetooth-ul este activat
         if (!bluetoothManager.isBluetoothEnabled()) {
             updateStatus("Te rugăm să activezi Bluetooth-ul")
             return
         }
 
-        // Verifică permisiunile
         if (hasRequiredPermissions()) {
             connectToESP32()
         } else {
@@ -130,7 +124,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupControlButtons() {
-        // Buton înainte (motor)
         buttonForward.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> sendCommand("F")        // Accelerează înainte
@@ -139,7 +132,6 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // Buton înapoi (motor)
         buttonBackward.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> sendCommand("B")        // Merge înapoi
@@ -148,7 +140,6 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // Buton stânga (direcţie)
         buttonLeft.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> sendCommand("L")        // Viraj stânga
@@ -157,7 +148,6 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // Buton dreapta (direcţie)
         buttonRight.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> sendCommand("R")        // Viraj dreapta

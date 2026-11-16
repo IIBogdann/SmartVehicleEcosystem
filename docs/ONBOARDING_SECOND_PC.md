@@ -23,7 +23,7 @@ Pe calculatorul Iulianei se instalează:
 - Android Studio și Android SDK pentru aplicația semnelor;
 - toolchain-ul Arduino/ESP32 stabilit în documentația proiectului.
 
-Versiunile exacte ale mediului vor fi fixate după pregătirea completă a calculatorului principal.
+Versiunile folosite la compilarea firmware-ului sunt in [baza hardware](HARDWARE_BASELINE.md).
 
 ## 3. Identitatea Git
 
