@@ -2,6 +2,10 @@
 
 Cele două aplicații sunt proiecte Gradle independente și se deschid separat în Android Studio.
 
+Din radacina repo-ului, `.\scripts\build.ps1 android` compileaza ambele aplicatii.
+Pentru una singura, foloseste `.\scripts\build.ps1 vehicle-app` sau
+`.\scripts\build.ps1 signs-app`. Adauga `-Offline` daca ai deja dependintele in cache.
+
 ## `vehicle-app`
 
 Aplicația mașinuței. Responsabilitate principală: Bogdan.
