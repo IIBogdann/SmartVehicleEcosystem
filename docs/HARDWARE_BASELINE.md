@@ -46,7 +46,7 @@ confirmarea toolchain-ului original complet.
 
 ## Compilare de referință
 
-Din radacina repo-ului, `.\scripts\build.ps1 firmware` compileaza toate placile.
+Din radacina repo-ului, `.\scripts\build.cmd firmware` compileaza toate placile.
 Pentru o singura placa, alege `uno`, `vehicle-esp32`, `sign-1` sau `sign-2`.
 Scriptul compileaza local, fara upload.
 

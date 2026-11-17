@@ -115,5 +115,5 @@ Acest fișier păstrează contextul tehnic stabil de care au nevoie Bogdan, Iuli
 
 ### 2026-11-17 — build pe Windows
 
-- `.\scripts\build.ps1` compileaza cele doua aplicatii si cele patru placi. Pentru build pe componente, vezi [Android](mobile/README.md) si [baza hardware](docs/HARDWARE_BASELINE.md).
+- `.\scripts\build.cmd` compileaza cele doua aplicatii si cele patru placi. Pentru build pe componente, vezi [Android](mobile/README.md) si [baza hardware](docs/HARDWARE_BASELINE.md).
 - Versiunile folosite la compilarea firmware-ului sunt in baza hardware. Testele pe banc raman de facut.
