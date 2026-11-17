@@ -20,24 +20,11 @@ Nu se păstrează progresul live într-un fișier Markdown comun. GitHub Issues 
 
 ### 1. Definire
 
-Se creează un Issue folosind șablonul `Sarcină de proiect`. Issue-ul trebuie să precizeze:
-
-- rezultatul dorit;
-- domeniul afectat;
-- persoana responsabilă;
-- criteriile de finalizare;
-- dacă schimbarea atinge un protocol comun;
-- ce hardware este necesar pentru test.
+Deschide un Issue cu sablonul `Sarcina de proiect`. Scrie ce trebuie sa mearga si alege responsabilul. Daca e nevoie de o placa sau se schimba un protocol, mentioneaza asta.
 
 ### 2. Revendicare
 
-Persoana se asignează Issue-ului și lasă comentariul:
-
-```text
-STARTED
-Branch: signs/align-espnow-channel
-Scope: firmware/traffic-signs/traffic_sign_2 și docs/PROTOCOLS.md
-```
+Cand te apuci, trece ramura in Issue. De exemplu: „Lucrez pe `signs/align-espnow-channel`, la semnul 2.”
 
 Un Issue are un singur responsabil principal. Celălalt poate ajuta prin review, comentarii sau o sarcină separată.
 
@@ -63,14 +50,7 @@ Dacă `git status` nu este curat, asistentul trebuie să înțeleagă schimbări
 
 ### 5. Predare prin Pull Request
 
-Pull Request-ul leagă Issue-ul prin `Closes #NUMAR` și conține:
-
-- rezumatul rezultatului;
-- componentele schimbate;
-- build-urile și testele rulate;
-- ce nu a putut fi testat;
-- impactul asupra celuilalt domeniu;
-- capturi pentru schimbări vizuale.
+Leaga Issue-ul cu `Closes #NUMAR`. Spune ce ai schimbat si ce ai testat. Daca schimbarea il afecteaza pe celalalt, spune cum.
 
 ### 6. Încheiere
 
