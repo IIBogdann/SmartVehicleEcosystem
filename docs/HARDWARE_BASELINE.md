@@ -46,7 +46,11 @@ confirmarea toolchain-ului original complet.
 
 ## Compilare de referință
 
-Rulați comenzile din rădăcina repository-ului. Sunt comenzi de compilare locală.
+Din radacina repo-ului, `.\scripts\build.cmd firmware` compileaza toate placile.
+Pentru o singura placa, alege `uno`, `vehicle-esp32`, `sign-1` sau `sign-2`.
+Scriptul compileaza local, fara upload.
+
+Comenzile Arduino CLI pe care le foloseste:
 
 ```powershell
 arduino-cli compile --fqbn 'esp32:esp32:XIAO_ESP32C3:PartitionScheme=no_ota' firmware/traffic-signs/traffic_sign_1

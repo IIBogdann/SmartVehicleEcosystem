@@ -113,28 +113,7 @@ Acest fișier păstrează contextul tehnic stabil de care au nevoie Bogdan, Iuli
 - Au fost citite și verificate imaginile de aplicație de pe cele patru plăci. Hashurile, schemele și toolchain-ul de referință sunt în [docs/HARDWARE_BASELINE.md](docs/HARDWARE_BASELINE.md).
 - Semnele folosesc sursa recuperată din `SmartVehicleEcosystem 1`; ESP32-ul și Arduino-ul mașinuței păstrează cele mai bune surse din Git. Imaginile recompilate diferă de imaginile instalate.
 
-## Următoarea actualizare a memoriei
+### 2026-11-17 — build pe Windows
 
-### Prioritatea următoarei sesiuni — pregătirea completă a PC-ului de dezvoltare
-
-La următoarea sesiune nu se începe cu funcții noi. Se pregătește permanent acest calculator pentru lucru rapid și repetabil:
-
-- inventarierea și instalarea toolchain-urilor Android, Arduino/ESP32 și PlatformIO necesare;
-- configurarea persistentă și corectă a `JAVA_HOME`, Android SDK, `PATH` și cache-urilor Gradle;
-- fixarea versiunilor de plăci, biblioteci și unelte folosite de proiect;
-- comenzi/scripturi simple pentru build-ul fiecărei componente și pentru verificarea completă;
-- reutilizarea cache-urilor pentru a reduce timpul și consumul de resurse/API;
-- verificarea celor două aplicații Android și a celor patru ținte firmware;
-- documentarea pașilor astfel încât asistenții să nu repete configurarea la fiecare sesiune;
-- evaluarea unor verificări automate locale și GitHub Actions cu cost minim.
-
-Obiectivul este ca după această sesiune build-urile uzuale să pornească prin comenzi scurte, fără configurări temporare repetate.
-
-După prima sesiune cu hardware real, trebuie consemnate:
-
-- plăcile exacte și versiunile de board package;
-- pinii confirmați și conexiunile hardware;
-- bibliotecile și versiunile care compilează;
-- canalul ESP-NOW ales definitiv;
-- adresele/configurarea dispozitivelor fără a publica date sensibile;
-- rezultatele testelor pentru fiecare dintre cele patru componente.
+- `.\scripts\build.cmd` compileaza cele doua aplicatii si cele patru placi. Pentru build pe componente, vezi [Android](mobile/README.md) si [baza hardware](docs/HARDWARE_BASELINE.md).
+- Versiunile folosite la compilarea firmware-ului sunt in baza hardware. Testele pe banc raman de facut.
