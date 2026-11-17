@@ -1,6 +1,3 @@
-// DisplayManager.cpp - implementarea clasei + obiectul global epaperDisplay
-// Optimizat pentru dimensiune cod - 2025
-
 #include "DisplayManager.h"
 #include <SPI.h>
 #include <Arduino.h>
@@ -9,7 +6,6 @@
 #define LED_BUILTIN 8
 #endif
 
-// ---------------------------- PARAMETRI CUSTOM -------------------------
 constexpr int      CIRCLE_MARGIN        = 2;    // px
 constexpr int      CIRCLE_BORDER_GAP    = 4;    // px
 constexpr int      STOP_BORDER_GAP      = 5;
@@ -23,22 +19,12 @@ constexpr int      STOP_TEXT_V_ADJ      = 0;    // px
 constexpr int     YIELD_BORDER_GAP    = 4;   // grosimea chenarului
 constexpr uint8_t YIELD_TEXT_SIZE     = 1;   // mărime text sub semn
 
-// ----------------------------------------------------------------------
 
-// ----------------------------------------------------------------------
-// DEFINIŢIA OBIECTULUI GLOBAL
-// ----------------------------------------------------------------------
 DisplayManager epaperDisplay;
 
-// ----------------------------------------------------------------------
-// CONSTRUCTOR
-// ----------------------------------------------------------------------
 DisplayManager::DisplayManager()
   : display(GxEPD2_213_flex(PIN_CS, PIN_DC, PIN_RST, /*busy*/ PIN_BUSY)) {}
 
-// ----------------------------------------------------------------------
-// INITIALIZARE
-// ----------------------------------------------------------------------
 void DisplayManager::init() {
   initPins();     clipire(1);
   resetDisplay();
@@ -68,9 +54,6 @@ void DisplayManager::initDisplay() {
   display.setRotation(3);   // 3 = landscape flipped (180°)
 }
 
-// ----------------------------------------------------------------------
-// UTILITARE
-// ----------------------------------------------------------------------
 void DisplayManager::clipire(int n) {
   for (int i = 0; i < n; ++i) {
     digitalWrite(LED_BUILTIN, HIGH); delay(200);
@@ -87,9 +70,6 @@ void DisplayManager::drawCenteredText(const char* txt, int16_t baselineY, uint8_
   display.println(txt);
 }
 
-// ----------------------------------------------------------------------
-// REFRESH / CLEAR
-// ----------------------------------------------------------------------
 void DisplayManager::fullRefresh() {
   display.firstPage();
   do { display.fillScreen(GxEPD_WHITE); } while (display.nextPage());
@@ -99,19 +79,14 @@ void DisplayManager::fullRefresh() {
 void DisplayManager::clear()       { fullRefresh(); }
 void DisplayManager::clearScreen() { clear(); }
 void DisplayManager::update() {
-  // Implementare corectă a metodei update() pentru a actualiza display-ul
   // Folosește firstPage()/nextPage() pattern pentru refresh fără ghosting
   // display.display(true) ar fi o alternativă, dar cu firstPage/nextPage evităm ghostingul
   display.firstPage();
   do {
-    // Conținutul este deja desenat prin alte metode
   } while (display.nextPage());
 }
 void DisplayManager::hibernate()   { display.hibernate(); }
 
-// ----------------------------------------------------------------------
-// ECRAN BUN VENIT
-// ----------------------------------------------------------------------
 void DisplayManager::welcomeMessage() {
   display.firstPage();
   do {
@@ -129,9 +104,6 @@ void DisplayManager::welcomeMessage() {
   clipire(3);
 }
 
-// ----------------------------------------------------------------------
-// ROUTER SEMNE
-// ----------------------------------------------------------------------
 void DisplayManager::showTrafficSign(const char* sign) {
   if (strcmp(sign, "STOP") == 0)                     showStopSign();
   else if (strcmp(sign, "YIELD") == 0)               showYieldSign();
@@ -148,9 +120,6 @@ void DisplayManager::showTrafficSign(const char* sign) {
   }
 }
 
-// ----------------------------------------------------------------------
-// SEMN STOP — OCTOGON CENTRAT
-// ----------------------------------------------------------------------
 void DisplayManager::showStopSign() {
   display.firstPage();
   do {
@@ -165,7 +134,6 @@ void DisplayManager::showStopSign() {
     const int16_t rOuter = STOP_OCT_RADIUS;
     const int16_t rInner = rOuter - STOP_BORDER_GAP;
 
-    // ---------- OCTOGON EXTERIOR ----------
     int16_t k = (int16_t)round(rOuter / 1.41421356f);        // r/√2
     display.drawLine(cx - k, cy - rOuter, cx + k, cy - rOuter, GxEPD_BLACK);
     display.drawLine(cx + k, cy - rOuter, cx + rOuter, cy - k, GxEPD_BLACK);
@@ -176,7 +144,6 @@ void DisplayManager::showStopSign() {
     display.drawLine(cx - rOuter, cy + k, cx - rOuter, cy - k, GxEPD_BLACK);
     display.drawLine(cx - rOuter, cy - k, cx - k, cy - rOuter, GxEPD_BLACK);
 
-    // ---------- OCTOGON INTERIOR (chenar dublu) ----------
     k = (int16_t)round(rInner / 1.41421356f);                // (r-Δ)/√2
     display.drawLine(cx - k, cy - rInner, cx + k, cy - rInner, GxEPD_BLACK);
     display.drawLine(cx + k, cy - rInner, cx + rInner, cy - k, GxEPD_BLACK);
@@ -187,7 +154,6 @@ void DisplayManager::showStopSign() {
     display.drawLine(cx - rInner, cy + k, cx - rInner, cy - k, GxEPD_BLACK);
     display.drawLine(cx - rInner, cy - k, cx - k, cy - rInner, GxEPD_BLACK);
 
-    // ---------- TEXT „STOP” CENTRAT ----------
     const char* txt = "STOP";
     int16_t x1, y1; uint16_t w, h;
     display.setTextSize(STOP_TEXT_SIZE);
@@ -201,9 +167,6 @@ void DisplayManager::showStopSign() {
 }
 
 
-// ----------------------------------------------------------------------
-// SEMN YIELD (CEDAŢI TRECEREA)
-// ----------------------------------------------------------------------
 void DisplayManager::showYieldSign() {
   display.firstPage();
   do {
@@ -213,7 +176,6 @@ void DisplayManager::showYieldSign() {
     const int16_t cx = display.width()  / 2;
     const int16_t cy = display.height() / 2;
 
-    // --- triunghi exterior (vârf în JOS) ---
     int16_t s  = YIELD_TRIANGLE_SIZE;
     display.drawTriangle(
         cx - s, cy - s,   // colț stânga sus
@@ -221,7 +183,6 @@ void DisplayManager::showYieldSign() {
         cx,     cy + s,   // vârf jos
         GxEPD_BLACK);
 
-    // --- triunghi interior (chenar dublu) ---
     int16_t s2 = s - YIELD_BORDER_GAP;
     display.drawTriangle(
         cx - s2, cy - s2,
@@ -229,7 +190,6 @@ void DisplayManager::showYieldSign() {
         cx,      cy + s2,
         GxEPD_BLACK);
 
-    // --- text informativ sub semn (opțional) ---
     display.setTextSize(YIELD_TEXT_SIZE);
     drawCenteredText("CEDEAZĂ",  cy + s + 10, YIELD_TEXT_SIZE);
     drawCenteredText("TRECEREA", cy + s + 22, YIELD_TEXT_SIZE);
@@ -237,11 +197,7 @@ void DisplayManager::showYieldSign() {
   } while (display.nextPage());
 }
 
-// ----------------------------------------------------------------------
-// SEMN LIMITĂ VITEZĂ
-// ----------------------------------------------------------------------
 void DisplayManager::showSpeedLimitSign(int limit) {
-/* existing content unchanged */
   char buf[8]; sprintf(buf, "%d", limit);
 
   display.firstPage();

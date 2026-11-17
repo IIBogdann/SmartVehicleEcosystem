@@ -2,10 +2,8 @@
 #include "BleManager.h"  // Necesar pentru notificarea BLE
 #include <esp_mac.h>  // Pentru macro-urile MAC2STR și MACSTR
 
-// Inițializare pointer static
 TrafficAlertReceiver* TrafficAlertReceiver::_instance = nullptr;
 
-// Constructor
 TrafficAlertReceiver::TrafficAlertReceiver(DisplayManager* displayManager)
   : _displayManager(displayManager), _isInitialized(false) {
   // Setăm instanța statică pentru a fi accesată din callback-uri
@@ -29,9 +27,7 @@ void receive_broadcast(const esp_now_recv_info_t *info, const uint8_t *data, int
     }
     Serial.println();
 
-    // Dacă avem instanța validă a receptor
     if (TrafficAlertReceiver::_instance) {
-      // Procesăm mesajul
       TrafficAlertReceiver::_instance->processMessage(data, len);
     }
   } else {
@@ -55,7 +51,6 @@ void TrafficAlertReceiver::init() {
   Serial.println("  Adresa MAC: " + WiFi.macAddress());
   Serial.printf("  Canal: %d\n", ESPNOW_WIFI_CHANNEL);
 
-  // Inițializare protocol ESP-NOW
   if (!ESP_NOW.begin()) {
     Serial.println("Eroare la inițializarea ESP-NOW!");
     Serial.println("Repornire în 5 secunde...");
@@ -71,9 +66,7 @@ void TrafficAlertReceiver::init() {
   Serial.println("TrafficAlertReceiver inițializat, în așteptare pentru mesaje broadcast...");
 }
 
-// Procesarea mesajelor primite
 void TrafficAlertReceiver::processMessage(const uint8_t* data, int len) {
-  // Dacă nu avem un display manager, nu putem face nimic
   if (!_displayManager) {
     Serial.println("Eroare: Display manager neinițializat!");
     return;
@@ -91,7 +84,6 @@ void TrafficAlertReceiver::processMessage(const uint8_t* data, int len) {
     TrafficMessage message;
     memcpy(&message, data, sizeof(TrafficMessage));
 
-    // Afișăm informații despre mesajul primit
     Serial.printf("Interpretare ca TrafficMessage - Tip: %d, Locație: %s\n", message.eventType, message.location);
 
     // Ne concentrăm doar pe mesajele de accident (eventType = 1)
@@ -136,16 +128,13 @@ void TrafficAlertReceiver::processMessage(const uint8_t* data, int len) {
     return;
   }
 
-  // Dacă nu am detectat nimic, ignorăm mesajul
   Serial.println("Mesaj ignorat: format necunoscut");
 }
 
 // Activare stare accident - afișare semn și notificare BLE
 void TrafficAlertReceiver::activateAccidentState() {
-  // Setăm flag-ul că suntem în stare de accident
   _accidentActive = true;
 
-  // Afișăm semnul de accident
   Serial.println("ACCIDENT detectat! Actualizez display-ul...");
   if (_displayManager) {
     _displayManager->showAccidentAlert();
@@ -167,7 +156,6 @@ void TrafficAlertReceiver::resetAccidentState() {
     _accidentActive = false;
     Serial.println("Resetare stare accident - revenire la semn normal");
 
-    // Afișăm semn normal (gol sau altă stare implicită)
     _displayManager->showTrafficSign("STOP"); // Sau alt semn implicit
 
     Serial.println("Semn resetat cu succes");
